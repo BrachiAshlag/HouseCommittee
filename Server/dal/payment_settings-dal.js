@@ -2,7 +2,6 @@ const db = require('../models/index')
 const Payment_settings = db.payments_settings;
 
 const createPayment_settings = async (payment_settingsToAdd) => { 
-    console.log(payment_settingsToAdd); 
     return await Payment_settings.create(payment_settingsToAdd);
 }
 

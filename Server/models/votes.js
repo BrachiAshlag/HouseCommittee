@@ -11,7 +11,7 @@ module.exports = (sequelize, DataTypes)=>{
             type: DataTypes.STRING,
             allowNull: false
         }, 
-        endDate:{
+        end_date:{
             type:  DataTypes.DATE
         }, 
         vote_type_id:{

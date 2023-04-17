@@ -28,7 +28,6 @@ const getAllApartments = async () => {
 }
 
 const getApartmentToUpdateDebt = async () => {
-    console.log("getApartmentToUpdateDebt");
     return await Apartment.findAll({
         // attributes: ["id", "debt", "pay_per_month", "res_tenant_id", "entry_id"],
         include: [

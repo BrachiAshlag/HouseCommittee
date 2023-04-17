@@ -18,9 +18,7 @@ const updateAds_board = (id, Ads_boardToUpdate) => {
 }
 
 const getAds_boardById = async (id) => {
-    console.log(id);
     const x = await Ads_board.findByPk(id);
-    console.log(x);
     return x;
 }
 
@@ -35,7 +33,6 @@ const getAllAds_boards = async(building_id, entry_id) => {
 const deleteAdsBoardsRemoveToday = () => {
     var today = new Date()
     today.setHours(0,0,0,0);
-    console.log(today);
     return Ads_board.findAll({
         // where:{
         //     removal_date: today 

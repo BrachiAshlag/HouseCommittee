@@ -75,7 +75,6 @@ const getBuilding = (req, res) => {
 const getAllBuildings = (req, res) => {
     Building_dal.getAllBuildings()
         .then(data => {
-            console.log(data);
             res.send(data);
         })
         .catch(err => {

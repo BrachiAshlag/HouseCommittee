@@ -73,15 +73,16 @@ const getExpense = (req, res) => {
 }
 
 const getAllExpenses = async (req, res) => {
-    if(!req.query.building_id|| !req.body.startDate|| !req.body.endDate)
+    if(!req.query.building_id|| !req.query.startDate|| !req.query.endDate)
         res.status(404).send("The fields building_id, startDate and endDate required!!");
     try{
         var response = []
-        const data = await expenses_dal.getExpensesInRange(req.query.building_id, req.body.startDate, req.body.endDate);
+        const data = await expenses_dal.getExpensesInRange(req.query.building_id, new Date(req.query.startDate), new Date(req.query.endDate));
         if(data){
+            console.log("data", data);
             data.forEach(element => {
                 const x = {
-                    "date": element.dataValues["date_of_expenses"],
+                    "date": element.dataValues["expenses_date"],
                     "details": element.dataValues["expenses_kind"].dataValues["description"],
                     "amount": element.dataValues["amount"],
                     "methods_of_payment": element.dataValues["payment_form"].dataValues["description"],
@@ -93,7 +94,7 @@ const getAllExpenses = async (req, res) => {
         }
         else
         res.status(404).send({
-            message: `Cannot find expense between ${req.body.startDate} and ${req.body.endDate}.`
+            message: `Cannot find expense between ${req.query.startDate} and ${req.query.endDate}.`
         });
     }
     catch(err){

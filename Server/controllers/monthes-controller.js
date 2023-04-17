@@ -39,7 +39,6 @@ const getAllMonthes = (req, res) => {
         res.status(404).send("The field building_id required");
     monthes.getAllMonthes(req.query.building_id)
         .then(data => {
-            console.log(data);
             res.send(data);
         })
         .catch(err => {

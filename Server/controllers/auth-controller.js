@@ -18,7 +18,6 @@ const login = async (req, res) => {//לבדוק אחרי שמאחדים את ה�
     const tenant = await Tenant_dal.getTenantById(tenant_id);
     if (tenant) {
         var hashedPwd = await bcrypt.hash(password, 10)
-        console.log(hashedPwd);
         const match = await bcrypt.compare(password, tenant.password);
         if (match === false)
             return res.status(401).json({ message: 'Unauthorized' });
@@ -65,7 +64,6 @@ const forgetPassword = async (req, res) => {
         return res.status(400).json({ message: 'All fields are required' });
     const tenant = await Tenant_dal.getTenantById(tenant_id);
     if (tenant) {
-        console.log(tenant);
         const apartment = await Apartment_dal.getApartment(tenant.apartment_id);
         if (apartment) {
             const entry = await Entry_dal.getEntryById(apartment.entry_id);
@@ -84,9 +82,7 @@ const forgetPassword = async (req, res) => {
                                 lowercase: true,
                                 strict: true
                             });
-                            console.log(password);
                             hashedPwd = await bcrypt.hash(password, 10)
-                            console.log(hashedPwd);
                             var adm = await Tenant_dal.getByPassword(hashedPwd);
                             if (adm != undefined)
                                 flag = true;

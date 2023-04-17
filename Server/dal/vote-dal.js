@@ -84,10 +84,39 @@ const getRelevantVote = async (entry_id, building_id) => {
         });
 }
 
+const getLastVote = async (entry_id, building_id) => {
+    if (building_id != undefined)
+        return await Vote.findAll({
+            limit:1, 
+            where: { 
+                [Op.and]: {
+                    end_date: { 
+                        [Op.lt]: new Date() 
+                    },
+                    building_id: building_id
+                }
+                
+            }, 
+            order:[['end_date', 'ASC']]
+        });
+    if (entry_id != undefined)
+        return await Vote.findAll({
+            limit:1, 
+            where: { 
+                [Op.and]: {
+                    end_date: { 
+                        [Op.lt]: new Date() 
+                    },
+                    entry_id: entry_id
+                }
+                
+            }, 
+            order:[['end_date', 'ASC']]
+        });
+}
+
 const getVotesByYear = (year, entry_id, building_id) => {
-    console.log(year);
     const startDate = new Date(year, 0, 1);
-    console.log(startDate);
     const endDate = new Date(year, 11, 31);
     if (building_id != undefined)
         return Vote.findAll({
@@ -167,5 +196,6 @@ module.exports = {
     getVotionBetween,
     getVotesByYear,
     getRelevantVote,
-    getVoteByVoteType
+    getVoteByVoteType,
+    getLastVote
 }

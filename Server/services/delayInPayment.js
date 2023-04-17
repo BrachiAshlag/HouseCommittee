@@ -6,13 +6,10 @@ const Apartment_dal = require("../dal/apartments-dal");
 const payment_setting_dal = require("../dal/payment_settings-dal");
 
 const updateDebt = async () => {
-    console.log("updateDebt");
     // const ap = await apartment_con.getApartmentToUpdateDebt();
     var response = [];
     const apartments = await Apartment_dal.getApartmentToUpdateDebt();
     if (apartments) {
-        console.log("apartments");
-        console.log(apartments);
         for (let i = 0; i < apartments.length; i++) {
             var element = apartments[i];
             element.debt = element.debt + element.pay_per_month;
@@ -37,7 +34,6 @@ const updateDebt = async () => {
                 console.log("The update failed");
             response.push(element);
         }
-        console.log(response);
         return response;
     }
     else {
@@ -46,14 +42,10 @@ const updateDebt = async () => {
 }
 
 const weekToPay = async () => {//לתרגם את המייל נורמלי
-    console.log("weekToPay");
     const ap = await Apartment_dal.getWeekToPayApartment();
-    console.log("ap");
-    console.log(ap);
     if (ap) {
         for (let i = 0; i < ap.length; i++) {
             const element = ap[i];
-            console.log(element.tenant.email);
             const email = element.tenant.email;
             mailer.sendEmail(email, `A week for the collect` , `Hi ${element.tenant.name}!\n in a week you will have to pay your house committee your ststic payment.\nYour amount for paying is ${element.pay_per_month}`)
                 .then(info => {
@@ -107,7 +99,6 @@ const late = async () => {
                     }
                     const res = await Tenant_dal.getTenantById(element.res_tenant_id);
                     const email = res.email;
-                    console.log(email);
                     mailer.sendEmail(email, `Hi ${res.name}!\n You are late to pay to your house committee`, `Your debt from last monthes is ${element.debt - element.pay_per_month}`)
                         .then(info => {
                             console.log('Email sent: ', info.response);

@@ -6,7 +6,7 @@ module.exports = (sequelize, DataTypes)=>{
             autoIncriment: true,
             primaryKey: true
         },
-        date_of_expenses: {
+        expenses_date: {
             type: DataTypes.DATE, 
             allowNull: false
         }, 

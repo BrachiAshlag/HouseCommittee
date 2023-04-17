@@ -1,6 +1,8 @@
 const PDFDocument = require('pdfkit');
 const fs = require('fs');
 const Tenants_payment_dal = require("../dal/tenant_payments-dal");
+const Entry_dal = require("../dal/entry-dal");
+const Building_dal = require("../dal/building-dal");
 const Tenant_dal = require("../dal/tenants-dal");
 const Apartment_dal = require("../dal/apartments-dal");
 const mailer = require("../services/mail");
@@ -123,23 +125,41 @@ const getTenant_payment = async (req, res) => {
 }
 
 const getAllTenants_payments = async (req, res) => {
+    if(!req.query.building_id|| !req.query.startDate|| !req.query.endDate)
+        res.status(404).send("The fields building_id, startDate and endDate required!!");
     try{
         var response = []
-        const data1 = await Tenants_payment_dal.getTenants_paymentsInRange(req.query.startDate, req.query.endDate);   
-        if(data1){  
-            console.log(data1);
-            for (let i = 0; i < data1.length; i++) {
-                const element = data1[i];
-                const data2 = await Tenant_dal.getTenantByApartmentId(element.dataValues["apartment_id"]);
-                if(data2){
-                    const x = {
-                        "date": element.dataValues["payments_date"],
-                        "details": "House committee payment from "+ data2[0].dataValues["name"]+ " family",
-                        "amount": element.dataValues["amount"],
-                        "methods_of_payment": element.dataValues["payment_form"].dataValues["description"],
-                        "num_of_payments": element.dataValues["num_of_payments"]
-                    }
-                    response.push(x);
+        const tenantPayment = await Tenants_payment_dal.getTenants_paymentsInRange(new Date(req.query.startDate), new Date(req.query.endDate));   
+        if(tenantPayment){ 
+            // console.log("tenantPayment",tenantPayment); 
+            for (let i = 0; i < tenantPayment.length; i++) {
+                const element = tenantPayment[i];
+                const tenant = await Tenant_dal.getTenantByApartmentId(element.apartment_id);
+                if(tenant){
+                    const apartment = await Apartment_dal.getApartment(element.apartment_id);
+                    if (apartment) {
+                        const entry = await Entry_dal.getEntryById(apartment.entry_id);
+                        if (entry) {
+                            const building = await Building_dal.getBuildingById(entry.building_id);
+                            if (building) {
+                                if (building.id == req.query.building_id) {
+                                {
+                                    console.log("tenant", tenant);
+                                    const x = {
+                                        date: element.payments_date,
+                                        details: "House committee payment from "+ tenant[0].name.split(" ")[1] + " family",
+                                        amount: element.amount,
+                                        methods_of_payment: element.payment_form.description,
+                                        num_of_payments: element.num_of_payments
+                                    }
+                                    response.push(x);
+                                }
+                            }
+                            else res.status(404).send({ message: `Cannot find building with id=${entry.building_id}.` });
+                        }
+                        else res.status(404).send({ message: `Cannot find entry with id ${element.entry_id}.` });
+                        }
+                    }                    
                 }
                 else
                 res.status(404).send({

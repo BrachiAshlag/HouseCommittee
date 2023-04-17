@@ -43,7 +43,6 @@ const getAllVoteTypes = async (req, res) => {
         res.status(404).send("The field building_id required");
     Vote_types_dal.getAllVoteTypes(req.query.building_id)
     .then(data => {
-        console.log(data);
         res.send(data);
     })
     .catch(err => {

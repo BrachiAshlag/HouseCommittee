@@ -5,7 +5,7 @@ const createVote = (req, res) => {
         .then(data => {
             const ad = {
                 description: req.body.subject,
-                removal_date: req.body.endDate,
+                removal_date: req.body.end_date,
                 entry_id: req.body.entry_id,
                 building_id: req.body.building_id
             };
@@ -93,7 +93,6 @@ const getAllVotes = (req, res) => {
         res.status(404).send("One of the fields building_id and entry_id required!!");
     Vote_dal.getAllVotes(req.query.entry_id, req.query.building_id)
         .then(data => {
-            console.log(data);
             res.send(data);
         })
         .catch(err => {
@@ -154,7 +153,21 @@ const getRelevantVote = async (req, res) => {
         res.status(404).send("One of the fields building_id and entry_id required!!");
     Vote_dal.getRelevantVote(req.query.entry_id, req.query.building_id)
         .then(data => {
-            console.log(data);
+            res.send(data);
+        })
+        .catch(err => {
+            res.status(500).send({
+                message:
+                    err.message || "Some error occurred while retrieving votes."
+            });
+        });
+}
+
+const getLastVote = async (req, res) => {
+    if(!req.query.building_id && !req.query.entry_id)
+        res.status(404).send("One of the fields building_id and entry_id required!!");
+    Vote_dal.getLastVote(req.query.entry_id, req.query.building_id)
+        .then(data => {
             res.send(data);
         })
         .catch(err => {
@@ -190,5 +203,6 @@ module.exports = {
     getVotionBetween,
     getVotesByYear,
     getRelevantVote,
-    getVoteByVoteType
+    getVoteByVoteType,
+    getLastVote
 }

@@ -19,6 +19,9 @@ voteRouter.route("/byYear")
 voteRouter.route("/relevant")   
     .get(vote.getRelevantVote);
 
+voteRouter.route("/last")   
+    .get(vote.getLastVote);
+
 voteRouter.route("/byVoteType")   
     .get(vote.getVoteByVoteType);
 

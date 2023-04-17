@@ -41,7 +41,6 @@ const updatePayment_settings = async (req, res) => {
             for (let i = 0; i < apartments.length; i++) {
                 const element = apartments[i];
                 var x = element.dataValues;
-                console.log(x);
                 var rooms = x["num_of_rooms"];
                 switch(rooms) {
                     case 1:

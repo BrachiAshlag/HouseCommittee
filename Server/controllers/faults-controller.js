@@ -17,7 +17,6 @@ const deleteFault = (req, res) => {
     faults_dal.deleteFault(req.params.id)
     .then(num => {
         if (num == 1) {
-            console.log(num);
             res.send({
                 message: "Faults was deleted successfully!"
             });
@@ -40,7 +39,6 @@ const getAllFaults = (req, res) => {
         res.status(404).send("The field building_id required");
     faults_dal.getAllFaults(req.query.building_id)
         .then(data => {
-            console.log(data);
             res.send(data);
         })
         .catch(err => {

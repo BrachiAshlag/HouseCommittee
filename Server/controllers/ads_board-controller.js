@@ -34,7 +34,6 @@ const deleteAds_board = (req, res) => {
 }
 
 const updateAds_board = (req, res) => {
-    console.log("updateAds_board");
     const id=req.params.id;
     Ads_board_dal.updateAds_board(id ,req.body)
     .then(num => {
@@ -78,7 +77,6 @@ const getAllAds_boards = (req, res) => {
     res.status(404).send("One of the field building_id or entry_id required");
     Ads_board_dal.getAllAds_boards(req.query.building_id, req.query.entry_id)
         .then(data => {
-            console.log(data);
             res.send(data);
         })
         .catch(err => {

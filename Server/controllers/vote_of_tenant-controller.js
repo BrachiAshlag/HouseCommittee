@@ -1,4 +1,6 @@
 const TenantVote_dal = require("../dal/vote_of_tenant-dal");
+const Vote_dal = require("../dal/vote-dal");
+const Vote_type_dal = require("../dal/vote_types-dal");
 
 const createTenantVote = (req, res) => {  
     TenantVote_dal.createTenantVote(req.body)
@@ -77,7 +79,6 @@ const getTenantVote = async (req, res) => {
 const getAllTenantVotes = (req, res) => {
     TenantVote_dal.getAllTenantVotes(req.query.vote_id)
         .then(data => {
-            console.log(data);
             res.send(data);
         })
         .catch(err => {
@@ -88,11 +89,45 @@ const getAllTenantVotes = (req, res) => {
         });
 }
 
+const getTenantVoteByVoteId = async(req, res) => {
+    try{
+        var response = { id: req.params.voteId, for: 0, against: 0, avoided:0 };
+        const tenantsVotes = await TenantVote_dal.getAllTenantVotes(req.params.voteId);
+        if(tenantsVotes){
+            const vote = await Vote_dal.getVote(req.params.voteId);
+            if(vote){
+                response.subject = vote.subject;
+                const voteType = await Vote_type_dal.getVoteTypeById(vote.vote_type_id);
+                if(voteType){
+                    response.negative = voteType.negative;
+                    response.positive = voteType.positive;
+                }
+            }
+            tenantsVotes.forEach(e=> {
+                if(e.answer == 1)
+                    response.for++;
+                else if(e.answer == 0)
+                    response.avoided++;
+                else 
+                    response.against++;
+            })
+        }
+        res.send(response);
+    }
+    catch{
+        res.status(500).send({
+            message:
+                err.message || "Some error occurred while retrieving tenants_votes."
+        });
+    }
+}
+
 
 module.exports = {
     createTenantVote,
     deleteTenantVote,
     updateTenantVote,
     getTenantVote,
-    getAllTenantVotes
+    getAllTenantVotes,
+    getTenantVoteByVoteId
 }

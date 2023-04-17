@@ -48,6 +48,7 @@ db.parks = require('./parks')(sequelize, DataTypes);
 db.storages = require('./storages')(sequelize, DataTypes);
 db.admins = require('./admins')(sequelize, DataTypes);
 db.payments_settings = require('./payment_settings')(sequelize, DataTypes);
+db.payment_formes = require('./payment_forms')(sequelize, DataTypes);
 
 db.ads_boards.belongsTo(db.entries, { foreignKey: 'entry_id' });
 db.ads_boards.belongsTo(db.buildings, { foreignKey: 'building_id' });

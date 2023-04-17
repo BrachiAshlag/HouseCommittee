@@ -1,3 +1,4 @@
+const { buildings } = require(".");
 
 module.exports = (sequelize, DataTypes) => {
     const Payment_forms = sequelize.define("payment_forms", {
@@ -9,7 +10,13 @@ module.exports = (sequelize, DataTypes) => {
         description: {
             type: DataTypes.STRING,
             allowNull: false
-        },
+        }, 
+        building_id: {
+            type: DataTypes.INTEGER,
+            references: buildings,
+            referenceskey: 'id',
+            allowNull: false
+        }
     }, {
         timestamps: false
     });

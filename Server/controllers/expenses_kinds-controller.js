@@ -40,7 +40,7 @@ const getAllExpenses_kinds = (req, res) => {
         res.status(404).send("The field building_id required");
     expenses_kinds_dal.getAllExpenses_kinds(req.query.building_id)
         .then(data => {
-            console.log(data);
+            (data);
             res.send(data);
         })
         .catch(err => {

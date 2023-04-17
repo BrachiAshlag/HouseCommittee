@@ -12,4 +12,7 @@ tenantsVoteRouter.route("/:id")
     .delete(vote_of_tenants.deleteTenantVote)
     .put(vote_of_tenants.updateTenantVote);
 
+tenantsVoteRouter.route("/byVoteId/:voteId")
+    .get(vote_of_tenants.getTenantVoteByVoteId)
+
 module.exports = tenantsVoteRouter;

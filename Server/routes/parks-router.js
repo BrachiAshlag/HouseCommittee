@@ -8,7 +8,6 @@ parksRouter.route("/")
     .post(parks.createPark);
 
 parksRouter.route("/:id")
-    .get(parks.getParkById)
     .delete(parks.deletePark);
 
 module.exports = parksRouter;

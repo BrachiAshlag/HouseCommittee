@@ -22,7 +22,6 @@ const sendEmail = async (to, subject, body) => {
 }
 
 async function sendEmailWithAttachment(to, subject, body, filename, path) {
-    console.log(to+" "+ subject+" "+body+" "+filename+" "+path)
     let mailOptions = {
         from: '36213843360@mby.co.il',
         to: to,

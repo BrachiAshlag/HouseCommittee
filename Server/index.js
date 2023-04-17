@@ -23,16 +23,20 @@ const storagesRouter = require("./routes/storages-router");
 const adminsRouter = require("./routes/admin-router");
 const paymentSettingsRouter = require("./routes/payment_settings-router");
 const voteTypeRouter = require("./routes/vote_types-router");
+const paymentFormsRouter = require("./routes/payments_forms-router");
 
 const express = require("express");
+const cors = require("cors");
 
 const app = express();
 const PORT = process.env.PORT || 8000;
 
+app.use(cors());
 app.use(express.urlencoded({ extended: true }));
 app.use(express.json());
 
 const db = require("./models");
+
 
 db.sequelize.sync()
   .then(() => {
@@ -67,13 +71,12 @@ app.use("/storage", storagesRouter);
 app.use("/admin", adminsRouter);
 app.use("/paymentSettings", paymentSettingsRouter);
 app.use("/voteTypes", voteTypeRouter);
+app.use("/paymentForm", paymentFormsRouter);
 
-// cron.schedule("0 0 0 * * *", () => {
-cron.schedule("15 5 * * * *", () => {
-  console.log(new Date());
-  // deleteOld.deleteAds();
+cron.schedule("0 0 0 * * *", () => {
+  deleteOld.deleteAds();
    delay.updateDebt();
-  //  delay.weekToPay();
+   delay.weekToPay();
 });
 
 app.listen(PORT, () => {

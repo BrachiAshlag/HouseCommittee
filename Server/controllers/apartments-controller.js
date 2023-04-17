@@ -6,8 +6,36 @@ const storage_dal = require("../dal/storage-dal");
 const park_dal = require("../dal/parks-dal");
 const paymentSetting_dal = require("../dal/payment_settings-dal");
 
-const createApartment = (req, res) => {
+const createApartment = async (req, res) => {
     req.body.debt = 0;
+    const entry = await Entry_dal.getEntryById(req.body.entry_id);
+    const pay = await paymentSetting_dal.getPayment_settings(entry.building_id);
+    if(pay.same_price)
+        req.body.pay_per_month = pay.same_price;
+    else
+        switch (req.body.num_of_rooms) {
+            case 1:
+                req.body.pay_per_month = pay.one_room;
+                break;
+            case 2:
+                req.body.pay_per_month = pay.two_rooms;
+                break;
+            case 3:
+                req.body.pay_per_month = pay.three_rooms;
+                break;
+            case 4:
+                req.body.pay_per_month = pay.four_rooms;
+                break;
+            case 5:
+                req.body.pay_per_month = pay.five_rooms;
+                break;
+            case 6:
+                req.body.pay_per_month = pay.six_rooms;
+                break;
+            default:
+                req.body.pay_per_month = pay.six_rooms;
+                break;
+        }
     Apartment_dal.createApartment(req.body)
         .then(data => {
             res.send(data);
@@ -16,6 +44,8 @@ const createApartment = (req, res) => {
             res.status(500).send({ message: err.message || "Some error occurred while creating the Tutorial." });
         });
 }
+
+
 
 const deleteApartment = (req, res) => {
     const id = req.params.id;
@@ -198,7 +228,6 @@ const getApartmentsDescription = async (req, res) => {
 
 const getApartmentByResTenantName = async (req, res) => {
     const n = req.params.name;
-    console.log(n);
     try {
         const apartment = await Apartment_dal.getAllApartments();
         if (apartment) {
@@ -232,8 +261,6 @@ const getApartmentToUpdateDebt = async (req, res) => {
     var response = [];
     const apartments = await Apartment_dal.getApartmentToUpdateDebt();
     if (apartments) {
-        console.log("apartments");
-        console.log(apartments);
         for (let i = 0; i < apartments.length; i++) {
             var element = apartments[i];
             // var ap = {
@@ -247,25 +274,19 @@ const getApartmentToUpdateDebt = async (req, res) => {
             //     debt: element.debt = element.debt + element.pay_per_month
             // };
             element.debt = element.debt + element.pay_per_month;
-            console.log("element");
-            console.log(element);
             await Apartment_dal.updateApartment(element.id, element.dataValues);
             var d = new Date(element.entry.building.payment_setting.next_payment);
-            d.setMonth(d.getMonth()+element.entry.building.payment_setting.often);
-            d.setHours(0,0,0,0);
+            d.setMonth(d.getMonth() + element.entry.building.payment_setting.often);
+            d.setHours(0, 0, 0, 0);
             element.entry.building.payment_setting.next_payment = d;
-            console.log("pay2");
-            console.log(element.entry.building.payment_setting);
             const pays = await paymentSetting_dal.updatePayment_settings(element.entry.building.payment_setting.id, element.entry.building.payment_setting.dataValues);
-            if(pays){
+            if (pays) {
                 console.log("The update sucssedded");
-                console.log((pays));
             }
             else
                 console.log("The update failed");
             response.push(element);
         }
-        console.log(response);
         res.send(response);
     }
     else {
@@ -274,16 +295,12 @@ const getApartmentToUpdateDebt = async (req, res) => {
 }
 
 const getWeekToPayApartment = async (req, res) => {
-    console.log("getWeekToPayApartment");
     Apartment_dal.getWeekToPayApartment()
         .then(data => {
-            console.log(data);
             res.send(data);
-            // return data;
         })
         .catch(err => {
             console.log(err.message || "Cannot find an apartment");
-            // res.status(404).send({ message: err.message || "Cannot find an apartment" });
         })
 }
 

@@ -43,7 +43,6 @@ const getAllParks = async (req, res) => {
     var response = [];
     try{
         const parks = await parks_dal.getAllParks();
-        console.log(parks);
         if(parks){
             for (let i = 0; i < parks.length; i++) {
                 const element = parks[i];

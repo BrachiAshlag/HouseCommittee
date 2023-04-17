@@ -90,14 +90,14 @@ const getAllEntries = async(req, res) => {
                 }
                 else
                 res.status(404).send({
-                    message: `Cannot find building between ${req.body.startDate} and ${req.body.endDate}.`
+                    message: `Cannot find building between ${req.query.startDate} and ${req.query.endDate}.`
                 });
             }
             res.send(response);
         }
         else
         res.status(404).send({
-            message: `Cannot find entries between ${req.body.startDate} and ${req.body.endDate}.`
+            message: `Cannot find entries between ${req.query.startDate} and ${req.query.endDate}.`
         });
     }
     catch(err){
