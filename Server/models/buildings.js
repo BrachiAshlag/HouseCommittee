@@ -17,7 +17,7 @@ module.exports = (sequelize, DataTypes)=>{
             type: DataTypes.STRING, 
             allowNull: false
         },
-        num_in_streert: {
+        num_in_street: {
             type: DataTypes.INTEGER, 
             allowNull: false
         },

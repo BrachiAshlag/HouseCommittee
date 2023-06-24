@@ -1,10 +1,12 @@
 const Vote_dal = require("../dal/vote-dal");
+const TenantVote_dal = require("../dal/vote_of_tenant-dal");
 const Ads_board_dal = require("../dal/ads_board-dal");
 const createVote = (req, res) => {
     Vote_dal.createVote(req.body)
         .then(data => {
             const ad = {
-                description: req.body.subject,
+                subject: req.body.subject,
+                description: "הצבעה חדשה ממתינה עבורך",
                 removal_date: req.body.end_date,
                 entry_id: req.body.entry_id,
                 building_id: req.body.building_id
@@ -89,7 +91,7 @@ const getVote = async (req, res) => {
 }
 
 const getAllVotes = (req, res) => {
-    if(!req.query.building_id && !req.query.entry_id)
+    if (!req.query.building_id && !req.query.entry_id)
         res.status(404).send("One of the fields building_id and entry_id required!!");
     Vote_dal.getAllVotes(req.query.entry_id, req.query.building_id)
         .then(data => {
@@ -104,7 +106,7 @@ const getAllVotes = (req, res) => {
 }
 
 const getVotesByYear = (req, res) => {
-    if((!req.query.building_id && !req.query.entry_id) || !req.query.year)
+    if ((!req.query.building_id && !req.query.entry_id) || !req.query.year)
         res.status(404).send("One of the fields building_id and entry_id required, and also year required!!");
     Vote_dal.getVotesByYear(req.query.year, req.query.entry_id, req.query.building_id)
         .then(data => {
@@ -119,7 +121,7 @@ const getVotesByYear = (req, res) => {
 }
 
 const getVoteByVoteType = (req, res) => {
-    if((!req.query.building_id && !req.query.entry_id) || !req.query.vote_type_id)
+    if ((!req.query.building_id && !req.query.entry_id) || !req.query.vote_type_id)
         res.status(404).send("One of the fields building_id and entry_id required, and also vote_type_id required!!");
     Vote_dal.getVoteByVoteType(req.query.entry_id, req.query.building_id, req.query.vote_type_id)
         .then(data => {
@@ -133,55 +135,119 @@ const getVoteByVoteType = (req, res) => {
         });
 }
 
-const getActiveVotions = (req, res) => {
-    if(!req.query.building_id && !req.query.entry_id)
+const getActiveVotions = async (req, res) => {
+    if (!req.query.building_id && !req.query.entry_id)
         res.status(404).send("One of the fields building_id and entry_id required!!");
-    Vote_dal.getActiveVotions(req.query.building_id, req.query.entry_id)
-        .then(data => {
-            res.send(data);
-        })
-        .catch(err => {
+    if (!req.query.tenant_id) {
+        Vote_dal.getActiveVotions(req.query.building_id, req.query.entry_id)
+            .then(data => {
+                res.send(data);
+            })
+            .catch(err => {
+                res.status(500).send({
+                    message:
+                        err.message || "Some error occurred while retrieving votes."
+                });
+            });
+    }
+    else {
+        try {
+            var response = [];
+            var flag = false;
+            const votes = await Vote_dal.getActiveVotions(req.query.building_id, req.query.entry_id);
+            if (votes) {
+                for (let i = 0; i < votes.length; i++) {
+                    const element = votes[i];
+                    const tenantVotes = await TenantVote_dal.getAllTenantVotes(element.id);
+                    flag = false;
+                    for (let i = 0; i < tenantVotes.length; i++) {
+                        const tenantVote = tenantVotes[i];
+                        if (tenantVote.tenant_id == req.query.tenant_id)
+                            flag = true;
+                    }
+                    if (!flag)
+                        response.push(element);
+                }
+            }
+            res.send(response);
+        }
+        catch (err) {
             res.status(500).send({
                 message:
                     err.message || "Some error occurred while retrieving votes."
             });
-        });
+        }
+    }
 }
 
 const getRelevantVote = async (req, res) => {
-    if(!req.query.building_id && !req.query.entry_id)
+    console.log("getRelevantVote");
+    if (!req.query.building_id && !req.query.entry_id)
         res.status(404).send("One of the fields building_id and entry_id required!!");
-    Vote_dal.getRelevantVote(req.query.entry_id, req.query.building_id)
-        .then(data => {
-            res.send(data);
-        })
-        .catch(err => {
-            res.status(500).send({
-                message:
-                    err.message || "Some error occurred while retrieving votes."
+    if (!req.query.tenant_id) {
+        Vote_dal.getActiveVotions(req.query.building_id, req.query.entry_id)
+            .then(data => {
+                res.send(data[0]);
+            })
+            .catch(err => {
+                res.status(500).send({
+                    message:
+                        err.message || "Some error occurred while retrieving votes."
+                });
             });
-        });
-}
+    }
+    else {
+        try {
 
-const getLastVote = async (req, res) => {
-    if(!req.query.building_id && !req.query.entry_id)
-        res.status(404).send("One of the fields building_id and entry_id required!!");
-    Vote_dal.getLastVote(req.query.entry_id, req.query.building_id)
-        .then(data => {
-            res.send(data);
-        })
-        .catch(err => {
+            var flag = false;
+            const votes = await Vote_dal.getActiveVotions(req.query.building_id, req.query.entry_id);
+            if (votes) {
+                for (let i = 0; i < votes.length; i++) {
+                    const element = votes[i];
+                    const tenantVotes = await TenantVote_dal.getAllTenantVotes(element.id);
+                    flag = false;
+                    for (let i = 0; i < tenantVotes.length; i++) {
+                        const tenantVote = tenantVotes[i];
+                        if (tenantVote.tenant_id == req.query.tenant_id)
+                            flag = true;
+                    }
+                    if (!flag){
+                        var response = [];
+                        response.push(element);
+                        return res.send(response);
+                    }
+                }
+            }
+            // res.send(response);
+        }
+        catch (err) {
             res.status(500).send({
                 message:
                     err.message || "Some error occurred while retrieving votes."
             });
-        });
+        }
+    }
 }
 
 const getVotionBetween = (req, res) => {
-    if((!req.query.building_id && !req.query.entry_id) || !req.query.startDate || !req.query.endDate)
+    if ((!req.query.building_id && !req.query.entry_id) || !req.query.startDate || !req.query.endDate)
         res.status(404).send("One of the fields building_id and entry_id required!!");
     Vote_dal.getVotionBetween(req.query.entry_id, req.query.building_id, new Date(req.query.startDate), new Date(req.query.endDate))
+        .then(data => {
+            res.send(data);
+        })
+        .catch(err => {
+            res.status(500).send({
+                message:
+                    err.message || "Some error occurred while retrieving votes."
+            });
+        });
+}
+
+const getLastVote = (req, res) => {
+    if (!req.query.building_id && !req.query.entry_id)
+        res.status(404).send("One of the fields building_id and entry_id required!!");
+    Vote_dal.getLastVote(req.query.building_id, req.query.entry_id)
         .then(data => {
             res.send(data);
         })

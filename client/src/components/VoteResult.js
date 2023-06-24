@@ -1,27 +1,28 @@
 
 import React, { useState, useEffect } from 'react';
 import { Chart } from 'primereact/chart';
+import { Card } from 'primereact/card';
 
-export default function VoteResult(params) {
+export default function VoteResult(props) {
     const [chartData, setChartData] = useState({});
     const [chartOptions, setChartOptions] = useState({});
 
     useEffect(() => {
         const documentStyle = getComputedStyle(document.documentElement);
         const data = {
-            labels: [params.positive.description, params.neutral.description, params.negative.description],
+            labels: [props.positive.description, props.neutral.description, props.negative.description],
             datasets: [
                 {
-                    data: [params.positive.count, params.neutral.count, params.negative.count],
+                    data: [props.positive.count, props.neutral.count, props.negative.count],
                     backgroundColor: [
-                        documentStyle.getPropertyValue('--blue-500'), 
-                        documentStyle.getPropertyValue('--yellow-500'), 
-                        documentStyle.getPropertyValue('--green-500')
+                        documentStyle.getPropertyValue('--green-400'),
+                        documentStyle.getPropertyValue('--yellow-400'),
+                        documentStyle.getPropertyValue('--red-400')
                     ],
                     hoverBackgroundColor: [
-                        documentStyle.getPropertyValue('--blue-400'), 
-                        documentStyle.getPropertyValue('--yellow-400'), 
-                        documentStyle.getPropertyValue('--green-400')
+                        documentStyle.getPropertyValue('--green-400'),
+                        documentStyle.getPropertyValue('--yellow-400'),
+                        documentStyle.getPropertyValue('--red-400')
                     ]
                 }
             ]
@@ -35,12 +36,18 @@ export default function VoteResult(params) {
     }, []);
 
     return (
-        <div className="card flex justify-content-center">
-            <div style={{margin: "5%"}}>{params.subject}</div>
-            <Chart style={{width: "30%", marginLeft: "30%"/*, marginRight: "auto"*/}} type="doughnut" data={chartData} options={chartOptions} />
-            <br/>
-        </div>
-        
+        <>
+            {
+                (props.positive.count != 0 || props.negative.count != 0 || props.neutral.count != 0) &&
+                <div className="card flex justify-content-center">
+                    <Card style={{ width: "80%" }} className="card flex justify-content-center">
+                        <div className="flex align-items-start justify-content-center" style={{ /*margin: "5%",*/ fontSize: "15pt" }}>{props.subject}</div><br />
+                        <Chart className="flex align-items-start justify-content-center" /*style={{ width: "50%"}}*/ type="doughnut" data={chartData} options={chartOptions} />
+                    </Card>
+                </div>
+
+            }
+<br/><br/>
+        </>
     )
 }
-        

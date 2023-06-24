@@ -1,5 +1,6 @@
 const payment_settings = require("../dal/payment_settings-dal");
 const Apartment_dal = require("../dal/apartments-dal");
+const building_dal = require("../dal/building-dal");
 
 const createPayment_settings = (req, res) => {  
     const pay = {
@@ -10,7 +11,6 @@ const createPayment_settings = (req, res) => {
         four_rooms: req.body.four_rooms,
         five_rooms: req.body.five_rooms, 
         six_rooms: req.body.six_rooms, 
-        building_id: req.body.building_id,
         day_in_month: req.body.day_in_month, 
         often: req.body.often,
         next_payment: new Date((new Date).getFullYear(), (new Date).getMonth() + req.body.often, req.body.day_in_month + 1)
@@ -28,7 +28,7 @@ const createPayment_settings = (req, res) => {
 }
 
 const updatePayment_settings = async (req, res) => {
-    const apartments = await Apartment_dal.getAllApartments(req.body.building_id);
+    const apartments = await Apartment_dal.getAllApartments(req.query.building_id);
     if(apartments){
         if(req.body.same_price != null)
             for (let i = 0; i < apartments.length; i++) {
@@ -65,24 +65,48 @@ const updatePayment_settings = async (req, res) => {
                 await Apartment_dal.updateApartment(x["id"], x); 
             }
         }
+        await payment_settings.updatePayment_settings(req.body.id, req.body);
         res.send({
-            message: "apartment's payments was updated successfully."
+            message: "payment settings was updated successfully."
         });
     }
     else
     res.status(404).send({
         message: `Cannot find apartments in building ${req.body.building_id}.`
-    });
-    
+    });   
 }
 
-const getPayment_settings = async (req, res) => {
+const getLastPayment_settings = async (req, res) => {
+    payment_settings.getLastPaymentSettings()
+    .then(data=>{
+        if (data) 
+            res.send(data);
+        else
+            res.status(404).send({
+                message: `Cannot models.`
+            });  
+    })
+    .catch (err=>{
+        res.status(500).send({
+            message: "Error retrieving last payment settings"
+        });
+    });  
+}
+
+const getPayment_settingsById = async (req, res) => {
     if(!req.query.building_id)
         res.status(404).send("The field building_id required");
     try{
-        const settings = await payment_settings.getPayment_settings(req.query.building_id);
-        if(settings){
-            res.send(settings);
+        const building = await building_dal.getBuildingById(req.query.building_id);
+        if(building){
+            const settings = await payment_settings.getPaymentSettingsById(building.payment_setting_id);
+            if(settings){
+                res.send(settings);
+            }
+            else
+            res.status(404).send({
+                message: `Cannot find settings in building ${req.query.building_id}.`
+            });
         }
         else
         res.status(404).send({
@@ -101,5 +125,6 @@ const getPayment_settings = async (req, res) => {
 module.exports = {
     createPayment_settings,
     updatePayment_settings,
-    getPayment_settings
+    getLastPayment_settings,
+    getPayment_settingsById
 }

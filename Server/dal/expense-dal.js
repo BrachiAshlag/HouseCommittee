@@ -32,8 +32,8 @@ const getExpensesInRange = async(building_id, date1, date2) => {
         where:{
             [Op.and]: {
                 expenses_date:{
-                    [Op.gt]: date1,
-                    [Op.lt]: date2
+                    [Op.gte]: date1,
+                    [Op.lte]: date2
                 },
                 building_id:building_id
             }

@@ -1,7 +1,7 @@
 const Vote_types_dal = require("../dal/vote_types-dal");
-const Apartment_dal = require("../dal/apartments-dal");
-const Entry_dal = require("../dal/entry-dal");
-const Building_dal = require("../dal/building-dal");
+// const Apartment_dal = require("../dal/apartments-dal");
+// const Entry_dal = require("../dal/entry-dal");
+// const Building_dal = require("../dal/building-dal");
 
 const createVoteType = (req, res) => {  
     Vote_types_dal.createVoteType(req.body)

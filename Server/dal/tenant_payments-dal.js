@@ -8,7 +8,7 @@ const createTenant_payment = async (tenantPaymentToAdd) => {
 
 const deleteTenant_payment = async (id) => {
     return await Tenants_payments.destroy({
-      where: { id: id }
+        where: { id: id }
     });
 }
 
@@ -28,14 +28,32 @@ const getAllTenants_payments = async (apartment_id) => {
 
 const getTenants_paymentsInRange = async (date1, date2) => {
     return await Tenants_payments.findAll({
-        include:[
-            {model: db.payment_forms, attributes: ['description']}
-        ], 
-        where:{
-            payments_date:{
+        include: [
+            { model: db.payment_forms, attributes: ['description'] }
+        ],
+        where: {
+            payments_date: {
                 [Op.gt]: date1,
                 [Op.lt]: date2
-            }       
+            }
+        }
+    })
+}
+
+const getTenants_paymentsInRangeByApartment = async (apartmentId, date1, date2) => {
+    return await Tenants_payments.findAll({
+        include: [
+            { model: db.payment_forms, attributes: ['description'] }
+        ],
+        where:
+        {
+            [Op.and]: {
+                payments_date: {
+                    [Op.gt]: date1,
+                    [Op.lt]: date2
+                },
+                apartment_id: apartmentId
+            }
         }
     })
 }
@@ -50,5 +68,6 @@ module.exports = {
     updateTenant_payment,
     getTenant_payment,
     getAllTenants_payments,
-    getTenants_paymentsInRange
+    getTenants_paymentsInRange,
+    getTenants_paymentsInRangeByApartment
 }

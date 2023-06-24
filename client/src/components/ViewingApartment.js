@@ -1,69 +1,50 @@
-import React, { useState } from 'react';
-import { Button } from 'primereact/button';
+import React, { useContext, useEffect, useState } from 'react';
 import { Card } from 'primereact/card';
-import { AutoComplete } from "primereact/autocomplete";
 import '../Css/FormDemo.css';
-import { useNavigate } from "react-router-dom" 
+import { useNavigate } from "react-router-dom"; 
+import { Dropdown } from 'primereact/dropdown';
+import UserContext from './UserContext';
         
-const tenant = { id: 213843360, apartment_id: 1, entry_id: 1, building_id: 1 }
+// const tenant = { id: 213843360, apartment_id: 1, entry_id: 1, building_id: 1 }
 
 const ViewingApartment = () => {
+      // const tenant = useContext(UserContext)?.data;
+  const [tenant, setTenant]= useState(JSON.parse(localStorage.getItem("tenant")));
     const navigate = useNavigate();
 
     const [selectedItem, setSelectedItem] = useState(null);
-    const [filteredItems, setFilteredItems] = useState(null);
 
     const items = [
         {
-            "id": 2,
             "description": "דירה",
             "navigate": "searchByApartment"
         },
         {
-            "id": 3,
             "description": "שם",
             "navigate": "searchByName"
         },
         {
-            "id": 3,
             "description": "חניה",
             "navigate": "searchByPark"
         },
         {
-            "id": 3,
             "description": "מחסן",
             "navigate": "searchByStorage"
         },
         {
-            "id": 3,
             "description": "טלפון",
             "navigate": "searchByPhone"
         },
         {
-            "id": 3,
             "description": "מספר רכב",
             "navigate": "searchByCarNum"
         }
     ]
 
-    const searchItems = (event) => {
-        if(items?.length){
-            let query = event.query;
-            let _filteredItems = [];
-
-            for(let i = 0; i < items?.length; i++) {
-                let item = items[i];
-                if (item.description.indexOf(query) === 0) {
-                    _filteredItems.push(item);
-                }
-            }
-        setFilteredItems(_filteredItems);
-        }
-    }
-
-    const navig = () => {
-       navigate(`/${selectedItem.navigate}`)
-    }
+    useEffect(() => {
+        if(selectedItem!=null)
+            navigate(`/${selectedItem.navigate}`);
+    }, [selectedItem])
 
     return (
         <>
@@ -72,13 +53,11 @@ const ViewingApartment = () => {
                 <div className="card">
                     <Card title="צפייה בדירה">
                         <span className="p-float-label">
-                        <span style={{ fontSize: "1rem", fontWeight: "700", marginBottom: "0.5rem" }}>סנן לפי </span>
-                        <AutoComplete value={selectedItem} suggestions={filteredItems} completeMethod={searchItems} style={{direction:"ltr"}}
-                                virtualScrollerOptions={{ itemSize: 38 }} field="description" dropdown onChange={(e) => setSelectedItem(e.value)}/>
-                            {/* <label htmlFor="type" className={classNames({ 'p-error': isFormFieldValid(meta) })}>*סוג הוצאה</label> */}
+                        <span style={{ fontSize: "1rem", fontWeight: "700", marginBottom: "0.5rem" }}>חיפוש לפי </span>
+                        <Dropdown style={{ direction: "ltr" }} value={selectedItem} onChange={(e) => setSelectedItem(e.value)} options={items} optionLabel="description" 
+                            placeholder="דירה" className="w-full md:w-14rem" />
                         </span>
                         <br></br>
-                        <Button type="button" label="הצג " className="mt-2" icon = "pi pi-credit-card" onClick={()=>{navig()}}/>
                     </Card>
                 </div>
             </div>

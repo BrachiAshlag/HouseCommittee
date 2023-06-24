@@ -13,7 +13,7 @@ const transporter = nodemailer.createTransport({
 
 const sendEmail = async (to, subject, body) => {
     const mailOptions = {
-        from: '36213843360@mby.co.il',
+        from: config.MAILUSER,
         to: to,
         subject: subject,
         text: body
@@ -23,7 +23,7 @@ const sendEmail = async (to, subject, body) => {
 
 async function sendEmailWithAttachment(to, subject, body, filename, path) {
     let mailOptions = {
-        from: '36213843360@mby.co.il',
+        from: config.MAILUSER,
         to: to,
         subject: subject,
         text: body,

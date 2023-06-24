@@ -31,8 +31,8 @@ const createAdmin = async(req, res) => {
     Admin_dal.createAdmin(admin)
     .then(data =>{
         const to = req.body.email;
-        const subject = `You have successfully registered to our building committee management system`;
-        const body = `you are registered as an administrator. 
+        const subject = `נרשמת בהצלחה למערכת לניהול וועד הבית שלנו`;
+        const body = `הנך רשום/ה כמנהל/ת. 
         Your password is ${password}`;
 
         mailer.sendEmail(to, subject, body)
@@ -83,7 +83,7 @@ const getAllAdmins = async (req, res) => {
         }
         else
         res.status(404).send({
-            message: `Cannot find apartment with id=${id}.`
+            message: `Cannot find admins.`
         });
     }
     catch(err){
@@ -98,7 +98,13 @@ const getAdminById = async(req, res) =>{
     try{
         const admin = await Admin_dal.getAdminById(req.params.id);
         if(admin){
-            res.send(admin);
+            const response ={
+                id: admin.id,
+                name: admin.name,
+                email: admin.email,
+                building_id: admin.building_id
+            }
+            res.send(response);
         }
         else
         res.status(404).send({

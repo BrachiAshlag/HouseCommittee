@@ -7,9 +7,17 @@ module.exports = (sequelize, DataTypes)=>{
             autoIncriment: true,
             primaryKey: true
         },
-        description: DataTypes.STRING,
+        subject: {
+            type: DataTypes.STRING,
+            allowNull: false
+        },
+        description: {
+            type: DataTypes.STRING,
+            allowNull: false
+        },
         removal_date: {
-            type: DataTypes.DATE
+            type: DataTypes.DATE,
+            allowNull: false
         },
         entry_id: {
             type:DataTypes.INTEGER,

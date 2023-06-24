@@ -7,42 +7,69 @@ const park_dal = require("../dal/parks-dal");
 const paymentSetting_dal = require("../dal/payment_settings-dal");
 
 const createApartment = async (req, res) => {
-    req.body.debt = 0;
-    const entry = await Entry_dal.getEntryById(req.body.entry_id);
-    const pay = await paymentSetting_dal.getPayment_settings(entry.building_id);
-    if(pay.same_price)
-        req.body.pay_per_month = pay.same_price;
-    else
-        switch (req.body.num_of_rooms) {
-            case 1:
-                req.body.pay_per_month = pay.one_room;
-                break;
-            case 2:
-                req.body.pay_per_month = pay.two_rooms;
-                break;
-            case 3:
-                req.body.pay_per_month = pay.three_rooms;
-                break;
-            case 4:
-                req.body.pay_per_month = pay.four_rooms;
-                break;
-            case 5:
-                req.body.pay_per_month = pay.five_rooms;
-                break;
-            case 6:
-                req.body.pay_per_month = pay.six_rooms;
-                break;
-            default:
-                req.body.pay_per_month = pay.six_rooms;
-                break;
+    req.body.debt = 0;   
+    try{
+        const entry = await Entry_dal.getEntryById(req.body.entry_id);
+        if(entry){
+            const building = await Building_dal.getBuildingById(entry.building_id);
+            if(building){
+                const pay = await paymentSetting_dal.getPaymentSettingsById(building.payment_setting_id);
+                if(pay){
+                    if(pay.same_price)
+                        req.body.pay_per_month = pay.same_price;
+                    else
+                        switch (req.body.num_of_rooms) {
+                            case 1:
+                                req.body.pay_per_month = pay.one_room;
+                                break;
+                            case 2:
+                                req.body.pay_per_month = pay.two_rooms;
+                                break;
+                            case 3:
+                                req.body.pay_per_month = pay.three_rooms;
+                                break;
+                            case 4:
+                                req.body.pay_per_month = pay.four_rooms;
+                                break;
+                            case 5:
+                                req.body.pay_per_month = pay.five_rooms;
+                                break;
+                            case 6:
+                                req.body.pay_per_month = pay.six_rooms;
+                                break;
+                            default:
+                                req.body.pay_per_month = pay.six_rooms;
+                                break;
+                        }    
+                    Apartment_dal.createApartment(req.body)
+                    .then(data => {
+                        res.send(data);
+                    })
+                    .catch(err => {
+                        res.status(500).send({ message: err.message || "Some error occurred while creating the Tutorial." });
+                    });
+                }
+                else
+                res.status(404).send({
+                    message: `Cannot find settings in building ${entry.building_id}.`
+                });
+            }
+            else
+            res.status(404).send({
+                message: `Cannot find building in building ${entry.building_id}.`
+            });
         }
-    Apartment_dal.createApartment(req.body)
-        .then(data => {
-            res.send(data);
-        })
-        .catch(err => {
-            res.status(500).send({ message: err.message || "Some error occurred while creating the Tutorial." });
+        else
+        res.status(404).send({
+            message: `Cannot find entry in building ${req.body.entry_id}.`
         });
+    }
+    catch(err){
+        res.status(500).send({
+            message:
+                err.message || "Some error occurred while retrieving parks."
+        });
+    }      
 }
 
 

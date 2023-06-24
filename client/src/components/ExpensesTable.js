@@ -1,73 +1,75 @@
 
-import React, { useState, useEffect } from 'react';
-import { FilterMatchMode } from 'primereact/api';
+import React, { useState, useEffect, useContext } from 'react';
+import { FilterMatchMode, FilterOperator } from 'primereact/api';
 import { DataTable } from 'primereact/datatable';
 import { Column } from 'primereact/column';
 import { Dropdown } from 'primereact/dropdown';
 import { Calendar } from 'primereact/calendar';
 import { Button } from 'primereact/button';
 import { Dialog } from 'primereact/dialog';
-import { fetchData } from "../Hooks/useAxiosGet"
+import { fetchData } from "../Hooks/useAxiosGet";
+import UserContext from './UserContext';
 
-const tenant = { building_id: 1 }
+// const tenant = { building_id: 1 }
 function AddOrSubractDays(startingDate, number) {
     return (new Date(new Date().setDate(startingDate.getDate() + number)))
 }
 
 export default function BasicFilterDemo() {
+    // const tenant = useContext(UserContext)?.data;
+    const [tenant, setTenant] = useState(JSON.parse(localStorage.getItem("tenant")));
     const [expenses, setExpenses] = useState([]);
     const [paymentType, setPaymentType] = useState([]);
 
     const [visible, setVisible] = useState(false);
 
-    const [startDate, setStartDate] = useState(AddOrSubractDays(new Date(), -30).toISOString().slice(0, 10));
-    const [endDate, setEndDate] = useState(new Date().toISOString().slice(0, 10));
+    const [startDate, setStartDate] = useState(AddOrSubractDays(new Date(), -30));
+    const [endDate, setEndDate] = useState(new Date());
 
     const getPaymentType = async (url) => {
         const myData = await fetchData(url);
-        console.log(myData);
         setPaymentType(myData);
     }
+
     function AddOrSubractDaysToState(startingDate, number) {
-        setStartDate(new Date(new Date().setDate(startingDate.getDate() + number)).toISOString().slice(0, 10))
+        setStartDate(new Date(new Date().setDate(startingDate.getDate() + number)))
     }
-    
+
     const getExpenses = async (url) => {
         const myData = await fetchData(url);
-        console.log(myData);
         setExpenses(myData);
     }
 
     useEffect(() => {
-        debugger
-        console.log(`expense?building_id=${tenant.building_id}&startDate=${startDate}&endDate=${endDate}`);
-        getExpenses(`expense?building_id=${tenant.building_id}&startDate=${startDate}&endDate=${endDate}`);
-    }, [startDate||endDate])
+        getExpenses(`expense?building_id=${tenant?.building_id}&startDate=${startDate}&endDate=${endDate}`);
+    }, [startDate || endDate])
 
     useEffect(() => {
-        getExpenses(`expense?building_id=${tenant.building_id}&startDate=${startDate}&endDate=${endDate}`);
+        getExpenses(`expense?building_id=${tenant?.building_id}&startDate=${startDate}&endDate=${endDate}`);
     }, [visible])
 
-    useEffect(()=>{
-        getPaymentType(`paymentForm?building_id=${tenant.building_id}`);
-    },[])
+    useEffect(() => {
+        getPaymentType(`paymentForm?building_id=${tenant?.building_id}`);
+    }, [])
 
     const [filters] = useState({
         details: { value: null, matchMode: FilterMatchMode.CONTAINS },
         methods_of_payment: { value: null, matchMode: FilterMatchMode.STARTS_WITH },
         num_of_payments: { value: null, matchMode: FilterMatchMode.STARTS_WITH },
-        date: { value: null, matchMode: FilterMatchMode.STARTS_WITH },
+        // date: { value: null, matchMode: FilterMatchMode.STARTS_WITH },
         amount: { value: null, matchMode: FilterMatchMode.STARTS_WITH }
     });
     const [loading, setLoading] = useState(true);
 
-    const [selectedOption, setSelectedOption] = useState(null);
     const dateOptions = [
-        "הוצאות מהשבוע האחרון",
-        "הוצאות מהחודש האחרון",
-        "הוצאות מהשנה האחרונה",
-        "הוצאות בין שני תאריכים ספציפיים",
+        "מהשבוע האחרון",
+        "מהחודש האחרון",
+        "מהשנה האחרונה",
+        "בין שני תאריכים ספציפיים",
     ];
+
+    const [selectedOption, setSelectedOption] = useState(dateOptions[1]);
+
 
     useEffect(() => {
         setLoading(false);
@@ -127,71 +129,65 @@ export default function BasicFilterDemo() {
         );
     };
 
+    const dateFilterTemplate = (options) => {
+        return (<>
+            <Dropdown
+                value={selectedOption}
+                onChange={(e) => {
+                    setSelectedOption(e.value);
+                    switch (e.value) {
+                        case "מהשבוע האחרון":
+                            AddOrSubractDaysToState(new Date(), -7)
+                            setEndDate((new Date()))
+                            break;
+                        case "מהחודש האחרון":
+
+                            AddOrSubractDaysToState(new Date(), -30);
+                            setEndDate(new Date());
+                            break;
+                        case "מהשנה האחרונה":
+
+                            AddOrSubractDaysToState(new Date(), - 365);
+                            setEndDate(new Date());
+
+                            break;
+                        case "בין שני תאריכים ספציפיים":
+
+                            setVisible(true)
+                            break;
+                    }
+                }}
+                options={dateOptions}
+                placeholder="נא לבחור טווח"
+                className="w-full md:w-14rem"
+                style={{ width: "40%" }}
+            />
+        </>)
+    };
+
     return (
         <div className="card">
             <DataTable
                 value={expenses}
-                header={<div style={{textAlign: "center", fontSize: "25pt"}}>הוצאות</div>}
+                header={<div style={{ textAlign: "center", fontSize: "25pt" }}>הוצאות</div>}
                 paginator
                 rows={10}
                 dataKey="id"
                 filters={filters}
                 filterDisplay="row"
-                loading={loading}         
-                emptyMessage="לא נמצאו פריטים מתאימים"
+                loading={loading}
+                emptyMessage="לא נמצאו נתונים מתאימים"
+                style={{ margin: "1%" }}
             >
                 <Column
                     body={dateItemTemplate}
                     field="date"
-                    header="תאריך"      
+                    header="תאריך"
                     filter
-                    filterPlaceholder='חיפוש לפי תאריך  '//נתן ללחוץ על הכפתור משמאל כדי לבחור טווח תאריכים שונה
-                    filterHeader={
-                        <div className="card flex justify-content-center">
-                            <Dropdown
-                                value={selectedOption}
-                                onChange={(e) => {
-                                    console.log("e.value", e.value);
-                                    setSelectedOption(e.value);
-                                    switch (e.value) {
-                                        case "הוצאות מהשבוע האחרון":
-                                            debugger
-                                            AddOrSubractDaysToState(new Date(), -7)
-                                            setEndDate((new Date()).toISOString().slice(0, 10))
-                                            break;
-                                        case "הוצאות מהחודש האחרון":
-                                            debugger
-                                            setStartDate(AddOrSubractDaysToState(new Date(), -30).toISOString().slice(0, 10))
-                                            setEndDate((new Date()).toISOString().slice(0, 10))
-                                            break;
-                                        case "הוצאות מהשנה האחרונה":
-                                            debugger
-                                            setStartDate(AddOrSubractDaysToState(new Date(), - 365).toISOString().slice(0, 10))
-                                            setEndDate((new Date()).toISOString().slice(0, 10))
-
-                                            break;
-                                        case "הוצאות בין שני תאריכים ספציפיים":
-                                            debugger
-                                            setVisible(true)
-                                            break;
-                                    }
-                                }}
-                                options={dateOptions}
-                                placeholder="נא לבחור טווח"
-                                className="w-full md:w-14rem"
-                                style={{ width: "40%" }}
-                            />
-                            {/* לעשות אולי כפתור מחולק */}
-                            <Button 
-                                icon="pi pi-filter-slash" 
-                                onClick={() => {
-                                    setSelectedOption(null);   
-                                }} 
-                                style={{ direction: "ltr" }}
-                            />
-                        </div>}
-                    // filterElement={paymentTypeRowFilterTemplate}
+                    filterPlaceholder='חיפוש לפי תאריך'
+                    filterElement={dateFilterTemplate}
                     style={{ minWidth: '12rem' }}
+                    showFilterMenu={false}
                 />
                 <Column
                     header="פרטים"
@@ -229,15 +225,14 @@ export default function BasicFilterDemo() {
                 />
 
             </DataTable>
-            {/* :<></> }*/}
             <Dialog header="בחר את טווח התאריכים הרצוי" visible={visible} style={{ width: '50vw' }} onHide={() => setVisible(false)} >
-                <div className="card flex justify-content-center" style={{ direction: "ltr" }}>
-                    <div> 
+                <div className="card flex justify-content-center" style={{ direction: "rtl" }}>
+                    <div>
                         <span>מתאריך </span>
-                        <Calendar value={startDate} onChange={(e) => setStartDate((e.value).toISOString().slice(0, 10))} showIcon />
+                        <Calendar value={startDate} onChange={(e) => setStartDate(e.value)} dateFormat="dd/mm/yy" showIcon style={{ direction: "ltr" }} />
                         <span> </span>
                         <span>עד תאריך </span>
-                        <Calendar value={endDate} onChange={(e) => setEndDate((e.value).toISOString().slice(0, 10))} showIcon /*style={{direction: "ltr"}}*/ />
+                        <Calendar value={endDate} onChange={(e) => setEndDate((e.value))} dateFormat="dd/mm/yy" showIcon style={{ direction: "ltr" }} />
                         <span> </span>
                     </div>
                 </div>

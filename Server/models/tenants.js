@@ -16,7 +16,8 @@ module.exports = (sequelize, DataTypes)=>{
         email: {
             type:DataTypes.STRING,
             validate: { isEmail: true },
-            allowNull: false
+            allowNull: false,
+            unique: true
         },
         phone: {
             type:DataTypes.STRING,
@@ -28,7 +29,7 @@ module.exports = (sequelize, DataTypes)=>{
             referenceskey: 'id',
             allowNull: false
         },
-        Is_building_comittee: {
+        is_building_committee: {
             type: DataTypes.BOOLEAN,
             allowNull: false
         },
@@ -38,6 +39,10 @@ module.exports = (sequelize, DataTypes)=>{
         password: {
             type: DataTypes.STRING(45), 
             unique: true,
+            allowNull: false
+        },
+        parking_premit: {
+            type: DataTypes.BOOLEAN, 
             allowNull: false
         }
     }, {

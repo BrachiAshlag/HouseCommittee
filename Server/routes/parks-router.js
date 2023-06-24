@@ -10,5 +10,8 @@ parksRouter.route("/")
 parksRouter.route("/:id")
     .delete(parks.deletePark);
 
+parksRouter.route("/byApartment/:id")
+    .get(parks.getParksByApartmentId);
+
 module.exports = parksRouter;
  

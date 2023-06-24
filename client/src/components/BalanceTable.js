@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useContext } from 'react';
 import { FilterMatchMode, FilterOperator } from 'primereact/api';
 import { DataTable } from 'primereact/datatable';
 import { Column } from 'primereact/column';
@@ -8,36 +8,37 @@ import { Calendar } from 'primereact/calendar';
 import { Button } from 'primereact/button';
 import { Dialog } from 'primereact/dialog';
 import { fetchData } from "../Hooks/useAxiosGet"
+import UserContext from './UserContext';
 
-const tenant = { building_id: 1 }
+// const tenant = { building_id: 1 }
 function AddOrSubractDays(startingDate, number) {
     return (new Date(new Date().setDate(startingDate.getDate() + number)));
 }
 
 export default function BalanceTable() {
+    // const tenant = useContext(UserContext)?.data;
+    const [tenant, setTenant] = useState(JSON.parse(localStorage.getItem("tenant")));
     const [balance, setBalance] = useState([]);
     const [types, setTypes] = useState(["הכנסה", "הוצאה"]);
 
     const [visible, setVisible] = useState(false);
 
-    const [startDate, setStartDate] = useState(AddOrSubractDays(new Date(), -30).toISOString().slice(0, 10));
-    const [endDate, setEndDate] = useState(new Date().toISOString().slice(0, 10));
+    const [startDate, setStartDate] = useState(AddOrSubractDays(new Date(), -30));
+    const [endDate, setEndDate] = useState(new Date());
 
     const getBalance = async (url) => {
         const d = await fetchData(url);
         const myData = d.balance;
-        console.log(myData);
         setBalance(myData);
     }
 
     function AddOrSubractDaysToState(startingDate, number) {
-        setStartDate(new Date(new Date().setDate(startingDate.getDate() + number)).toISOString().slice(0, 10))
+        setStartDate(new Date(new Date().setDate(startingDate.getDate() + number)))
     }
 
     useEffect(() => {
-        console.log(`balance?building_id=${tenant.building_id}&startDate=${startDate}&endDate=${endDate}`);
-        getBalance(`balance?building_id=${tenant.building_id}&startDate=${startDate}&endDate=${endDate}`);
-    }, [startDate||endDate])
+        getBalance(`balance?building_id=${tenant?.building_id}&startDate=${startDate}&endDate=${endDate}`);
+    }, [startDate, endDate])
 
 
     const [filters, setFilters] = useState({
@@ -48,17 +49,17 @@ export default function BalanceTable() {
     });
     const [loading, setLoading] = useState(true);
 
-    const [selectedOption, setSelectedOption] = useState(null);
     const dateOptions = [
-        "פריטים מהשבוע האחרון",
-        "פריטים מהחודש האחרון",
-        "פריטים מהשנה האחרונה",
-        "פריטים בין שני תאריכים ספציפיים",
+        "מהשבוע האחרון",
+        "מהחודש האחרון",
+        "מהשנה האחרונה",
+        "בין שני תאריכים ספציפיים",
     ];
+    const [selectedOption, setSelectedOption] = useState(dateOptions[1]);
 
     useEffect(() => {
         setLoading(false);
-    }, [ startDate || endDate ]);
+    }, [startDate || endDate]);
 
     const amountBodyTemplate = (rowData) => {
         return (
@@ -103,17 +104,46 @@ export default function BalanceTable() {
     const typeRowFilterTemplate = (options) => {
 
         return (
-            types?.length ?
-                <Dropdown
-                    value={options}
-                    options={types}
-                    onChange={(e) => options.filterApplyCallback(e.value)}
-                    placeholder="סוג"
-                    className="p-column-filter"
-                    style={{ minWidth: '12rem' }}
-                /> : <></>
+            types?.length &&
+            <Dropdown
+                value={options}
+                options={types}
+                onChange={(e) => options.filterApplyCallback(e.value)}
+                placeholder="סוג"
+                className="p-column-filter"
+                style={{ minWidth: '12rem' }}
+            />
         );
     };
+
+    const dateFilterTemplate = () => {
+        return (
+            <Dropdown
+                value={selectedOption}
+                onChange={(e) => {
+                    setSelectedOption(e.value);
+                    switch (e.value) {
+                        case "מהשבוע האחרון":
+                            AddOrSubractDaysToState(new Date(), -7);
+                            break;
+                        case "מהחודש האחרון":
+                            AddOrSubractDaysToState(new Date(), -30);
+                            break;
+                        case "מהשנה האחרונה":
+                            AddOrSubractDaysToState(new Date(), -365);
+                            break;
+                        case "בין שני תאריכים ספציפיים":
+                            setVisible(true)
+                            break;
+                    }
+                }}
+                options={dateOptions}
+                placeholder="נא לבחור טווח"
+                className="w-full md:w-14rem"
+                style={{ width: "40%" }}
+            />
+        )
+    }
 
     return (
         <div className="card">
@@ -126,9 +156,10 @@ export default function BalanceTable() {
                 filterDisplay="row"
                 loading={loading}
                 header={
-                    <div style={{textAlign: "center", fontSize: "25pt"}}>מאזן</div>
+                    <div style={{ textAlign: "center", fontSize: "25pt" }}>מאזן</div>
                 }
-                emptyMessage="לא נמצאו פריטים מתאימים"
+                emptyMessage="לא נמצאו נתונים מתאימים"
+                style={{ margin: "1%" }}
             >
                 <Column
                     body={dateItemTemplate}
@@ -137,43 +168,8 @@ export default function BalanceTable() {
                     style={{ minWidth: '12rem' }}
                     filter
                     filterPlaceholder='חיפוש לפי תאריך'
-                    filterHeader={
-                        <div className="card flex justify-content-center">
-                        <Dropdown
-                            value={selectedOption}
-                            onChange={(e) => {
-                                console.log("e.value", e.value);
-                                setSelectedOption(e.value);
-                                switch (e.value) {
-                                    case "פריטים מהשבוע האחרון":
-                                        setStartDate(AddOrSubractDaysToState(new Date(), -7).toISOString().slice(0, 10))
-                                        break;
-                                    case "פריטים מהחודש האחרון":
-                                        setStartDate(AddOrSubractDaysToState(new Date(), -30).toISOString().slice(0, 10))
-                                        break;
-                                    case "פריטים מהשנה האחרונה":
-                                        setStartDate(AddOrSubractDaysToState(new Date(new Date() - 365)).toISOString().slice(0, 10))
-                                        break;
-                                    case "פריטים בין שני תאריכים ספציפיים":
-                                        setVisible(true)
-                                        break;
-                                }
-                            }}
-                            options={dateOptions}
-                            placeholder="נא לבחור טווח"
-                            className="w-full md:w-14rem"
-                            style={{ width: "40%" }}
-                        /> 
-                        {/* לעשות אולי כפתור מחולק */}
-                        <Button   
-                            icon="pi pi-filter-slash" 
-                            onClick={() => {
-                                setSelectedOption(null);   
-                            }} 
-                            style={{ direction: "ltr" }}
-                        />
-                    </div>
-                    }
+                    filterElement={dateFilterTemplate}
+                    showFilterMenu={false}
                 />
                 <Column
                     header="פרטים"
@@ -209,15 +205,14 @@ export default function BalanceTable() {
                 />
 
             </DataTable>
-            {/* :<></> }*/}
             <Dialog header="בחר את טווח התאריכים הרצוי" visible={visible} style={{ width: '50vw' }} onHide={() => setVisible(false)} >
-                <div className="card flex justify-content-center" style={{ direction: "ltr" }}>
+                <div className="card flex justify-content-center" style={{ direction: "rtl" }}>
                     <div>
                         <span>מתאריך </span>
-                        <Calendar value={startDate} onChange={(e) => setStartDate(e.value)} showIcon />
+                        <Calendar value={startDate} onChange={(e) => setStartDate(e.value)} dateFormat="dd/mm/yy" showIcon style={{ direction: "ltr" }} />
                         <span> </span>
                         <span>עד תאריך </span>
-                        <Calendar value={endDate} onChange={(e) => setEndDate(e.value)} showIcon /*style={{direction: "ltr"}}*/ />
+                        <Calendar value={endDate} onChange={(e) => setEndDate(e.value)} dateFormat="dd/mm/yy" showIcon style={{ direction: "ltr" }} />
                         <span> </span>
                     </div>
                 </div>

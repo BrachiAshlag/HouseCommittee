@@ -1,6 +1,6 @@
 const { buildings } = require(".");
 module.exports = (sequelize, DataTypes)=>{
-    const Expenses_kind = sequelize.define("expenses_kinds", {
+    const Cameras = sequelize.define("cameras", {
         id: {
             type: DataTypes.INTEGER,
             autoIncriment: true,
@@ -19,5 +19,5 @@ module.exports = (sequelize, DataTypes)=>{
     }, {
         timestamps: false
     });
-    return Expenses_kind;
+    return Cameras;
 }

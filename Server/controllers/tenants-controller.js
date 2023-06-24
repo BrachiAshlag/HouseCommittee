@@ -5,16 +5,16 @@ const Building_dal = require("../dal/building-dal");
 const mailer = require("../services/mail");
 const generator = require('generate-password');
 const bcrypt = require("bcrypt");
-const ParkingPermits_dal = require("../dal/parking_premit-dal")
+
 
 function IDValidator(id) {
-    if (id.length !== 9 || isNaN(id)) {  // Make sure ID is formatted properly
+    if (id.length !== 9 || isNaN(id)) {
         return false;
     }
     let sum = 0, incNum;
     for (let i = 0; i < id.length; i++) {
-        incNum = Number(id[i]) * ((i % 2) + 1);  // Multiply number by 1 or 2
-        sum += (incNum > 9) ? incNum - 9 : incNum;  // Sum the digits up and add to total
+        incNum = Number(id[i]) * ((i % 2) + 1);
+        sum += (incNum > 9) ? incNum - 9 : incNum;
     }
     return (sum % 10 === 0);
 }
@@ -34,7 +34,7 @@ const createTenant = async (req, res) => {
     }
     var flag = false;
     var password = null;
-    while(!flag){
+    while (!flag) {
         password = generator.generate({
             length: 10,
             numbers: true,
@@ -44,38 +44,40 @@ const createTenant = async (req, res) => {
         });
         hashedPwd = await bcrypt.hash(password, 10)
         const tenant = await Tenant_dal.getByPassword(hashedPwd);
-        if(tenant != undefined) 
-            flag=true;
+        if (tenant != undefined)
+            flag = true;
     }
-    
+    console.log("req.body", req.body);
+
     const x = {
-        "id": req.body.id,
-        "name":  req.body.name,
-        "birth_date": req.body.birth_date,
-        "email":  req.body.email,
-        "phone": req.body.phone,
-        "apartment_id": req.body.apartment_id,
-        "Is_building_comittee": req.body.Is_building_comittee,
-        "car_id": req.body.car_id,
-        "password": hashedPwd
+        id: req.body.id,
+        name: req.body.name,
+        birth_date: req.body.birth_date,
+        email: req.body.email,
+        phone: req.body.phone,
+        apartment_id: req.body.apartment_id,
+        is_building_committee: req.body.is_building_committee,
+        car_id: req.body.car_id ? req.body.car_id : null,
+        parking_premit: req.body.parking_premit,
+        password: hashedPwd
     }
+
     Tenant_dal.createTenant(x)
         .then(data => {
-            const to = data.dataValues["email"];
-            const subject = "Successfully added tenant";
-            const body = "Successfully added tenant, your password is: "+ password;
-        
+            const to = data.email; ''
+            const subject = "הדייר נוסף בהצלחה למערכת";
+            const body = "נרשמת כדייר/ת במערכת לניהול וועד בית, סיסמתך היא " + password;
+
             mailer.sendEmail(to, subject, body)
                 .then(info => {
                     console.log('Email sent: ', info.response);
-                    res.send("The message's sending successful, tenant created!!\n"+data);
-                    // res.send();
+                    res.send("The message's sending successful, tenant created!!\n" + data);
                 })
                 .catch(error => {
                     console.log('Error sending email: ', error);
                     res.status(500).send('Failed to send email');
                 });
-            
+
         })
         .catch(err => {
             res.status(500).send({
@@ -114,8 +116,8 @@ const updateTenant = (req, res) => {
                     message: "tenant was updated successfully."
                 });
             } else {
-                res.send({
-                    message: `Cannot update tenant with id=${id}. Maybe tenant was not found or req.body is empty!`
+                res.status(404).send({
+                    message: `Cannot update tenant with id= ${id}. Maybe tenant was not found or req.body is empty!`
                 });
             }
         })
@@ -144,49 +146,100 @@ const getTenantById = (req, res) => {
         });
 }
 
+const getAllTenantData = async (req, res) => {
+    const id = req.params.id;
+    try {
+        const tenant = await Tenant_dal.getTenantById(id);
+        if (tenant) {
+            const apartment = await Apartment_dal.getApartment(tenant.apartment_id);
+            if (apartment) {
+                const entry = await Entry_dal.getEntryById(apartment.entry_id);
+                if (entry) {
+                    const building = await Building_dal.getBuildingById(entry.building_id);
+                    if (building) {
+                        const data = {
+                            id: tenant.id,
+                            name: tenant.name,
+                            apartment_id: apartment.id,
+                            entry_id: entry.id,
+                            building_id: entry.building_id,
+                            is_building_committee: tenant.is_building_committee,
+                            apartment_num: apartment.description,
+                            entry_num: entry.nickname,
+                            address: building.street + " " + building.num_in_street + " " + building.city
+                        }
+                        res.send(data);
+                    }
+                    else
+                        res.status(404).send({
+                            message: `Cannot find tenant with id=${req.params.id}.`
+                        });
+                }
+                else
+                    res.status(404).send({
+                        message: `Cannot find tenant with id=${req.params.id}.`
+                    });
+            }
+            else
+                res.status(404).send({
+                    message: `Cannot find tenant with id=${req.params.id}.`
+                });
+        } else
+            res.status(404).send({
+                message: `Cannot find tenant with id=${req.params.id}.`
+            });
+    }
+    catch (err) {
+        res.status(500).send({
+            message: "Error retrieving tenant with id=" + id
+        });
+    }
+
+}
+
 const getTenantByApartmentId = (req, res) => {
     const id = req.params.id;
     Tenant_dal.getTenantByApartmentId(id)
-    .then(data => {
-        if (data)
-            res.send(data);
-        else
-            res.status(404).send({
-                message: `Cannot find tenant with apartment id= ${carNum}.`
+        .then(data => {
+            if (data)
+                res.send(data);
+            else
+                res.status(404).send({
+                    message: `Cannot find tenant with apartment id= ${carNum}.`
+                });
+        })
+        .catch(err => {
+            res.status(500).send({
+                message: "Error retrieving tenant with apartment id=" + carNum
             });
-    })
-    .catch(err => {
-        res.status(500).send({
-            message: "Error retrieving tenant with apartment id=" + carNum
         });
-    });
 }
 
-const getTenantByName = async(req, res) => {
+const getTenantByName = async (req, res) => {
     const Name = req.params.Name;
-    if(!req.query.building_id)
+    if (!req.query.building_id)
         res.status(404).send("The field building_id required");
-    if(!Name)
+    if (!Name)
         res.status(404).send("The field name required");
     var response = [];
     try {
         const tenants = await Tenant_dal.getTenantByName(Name)
-        if(tenants){
+        if (tenants) {
             for (let i = 0; i < tenants.length; i++) {
                 const element = tenants[i];
                 const apartment = await Apartment_dal.getApartment(element.apartment_id);
-                if(apartment){
+                if (apartment) {
                     const entry = await Entry_dal.getEntryById(apartment.entry_id);
-                    if(entry){
+                    if (entry) {
                         const building = await Building_dal.getBuildingById(entry.building_id);
-                        if(building){
+                        if (building) {
                             if (building.id == req.query.building_id)
                                 response.push(element.dataValues);
                         }
                         else
-                        res.status(404).send({
-                            message: `Cannot find building with id=${entry.building_id}.`
-                        });
+                            res.status(404).send({
+                                message: `Cannot find building with id=${entry.building_id}.`
+                            });
                     }
                     else
                         res.status(404).send({
@@ -194,9 +247,9 @@ const getTenantByName = async(req, res) => {
                         });
                 }
                 else
-                res.status(404).send({
-                    message: `Cannot find apartment with id=${element.apartment_id}.`
-                });
+                    res.status(404).send({
+                        message: `Cannot find apartment with id=${element.apartment_id}.`
+                    });
             }
         }
         else
@@ -213,32 +266,32 @@ const getTenantByName = async(req, res) => {
     };
 }
 
-const getTenantByPhone = async(req, res) => {
-    if(!req.query.building_id)
+const getTenantByPhone = async (req, res) => {
+    if (!req.query.building_id)
         res.status(404).send("The field building_id required");
     const phone = req.params.phone;
     try {
         const tenant = await Tenant_dal.getTenantByPhone(phone);
-        if(tenant){
+        if (tenant) {
             for (let i = 0; i < tenant.length; i++) {
                 const element = tenant[i];
                 const apartment = await Apartment_dal.getApartment(element.apartment_id);
-                if(apartment){
+                if (apartment) {
                     const entry = await Entry_dal.getEntryById(apartment.entry_id);
-                    if(entry){
+                    if (entry) {
                         const building = await Building_dal.getBuildingById(entry.building_id);
-                        if(building){
+                        if (building) {
                             if (building.id == req.query.building_id)
                                 res.send(tenant)
                             else
-                            res.status(404).send({
-                                message: `Cannot find tenant with phone ${phone}.`
-                            });
+                                res.status(404).send({
+                                    message: `Cannot find tenant with phone ${phone}.`
+                                });
                         }
                         else
-                        res.status(404).send({
-                            message: `Cannot find building with id=${entry.building_id}.`
-                        });
+                            res.status(404).send({
+                                message: `Cannot find building with id=${entry.building_id}.`
+                            });
                     }
                     else
                         res.status(404).send({
@@ -246,9 +299,9 @@ const getTenantByPhone = async(req, res) => {
                         });
                 }
                 else
-                res.status(404).send({
-                    message: `Cannot find apartment with id=${element.apartment_id}.`
-                });
+                    res.status(404).send({
+                        message: `Cannot find apartment with id=${element.apartment_id}.`
+                    });
             }
         }
         else
@@ -264,31 +317,31 @@ const getTenantByPhone = async(req, res) => {
     };
 }
 
-const getTenantByCarNum = async(req, res) => {
-    if(!req.query.building_id)
+const getTenantByCarNum = async (req, res) => {
+    if (!req.query.building_id)
         res.status(404).send("The field building_id required");
     const carNum = req.params.carNum;
-    if(!carNum)
+    if (!carNum)
         res.status(404).send("The field carNum required");
     var response = [];
     try {
         const tenants = await Tenant_dal.getTenantByCarNum(carNum);
-        if(tenants){
+        if (tenants) {
             for (let i = 0; i < tenants.length; i++) {
                 const element = tenants[i];
                 const apartment = await Apartment_dal.getApartment(element.apartment_id);
-                if(apartment){
+                if (apartment) {
                     const entry = await Entry_dal.getEntryById(apartment.entry_id);
-                    if(entry){
+                    if (entry) {
                         const building = await Building_dal.getBuildingById(entry.building_id);
-                        if(building){
+                        if (building) {
                             if (building.id == req.query.building_id)
                                 response.push(element.dataValues);
                         }
                         else
-                        res.status(404).send({
-                            message: `Cannot find building with id=${entry.building_id}.`
-                        });
+                            res.status(404).send({
+                                message: `Cannot find building with id=${entry.building_id}.`
+                            });
                     }
                     else
                         res.status(404).send({
@@ -296,9 +349,9 @@ const getTenantByCarNum = async(req, res) => {
                         });
                 }
                 else
-                res.status(404).send({
-                    message: `Cannot find apartment with id=${element.apartment_id}.`
-                });
+                    res.status(404).send({
+                        message: `Cannot find apartment with id=${element.apartment_id}.`
+                    });
             }
         }
         else
@@ -316,27 +369,27 @@ const getTenantByCarNum = async(req, res) => {
 }
 
 const getAllTenants = async (req, res) => {
-    if(!req.query.building_id)
+    if (!req.query.building_id)
         res.status(404).send("The field building_id required");
     var response = [];
     try {
         const tenants = await Tenant_dal.getAllTenants();
-        if(tenants){
+        if (tenants) {
             for (let i = 0; i < tenants.length; i++) {
-                const element = tenants[i];
-                const apartment = await Apartment_dal.getApartment(element.apartment_id);
-                if(apartment){
+                const tenant = tenants[i];
+                const apartment = await Apartment_dal.getApartment(tenant.apartment_id);
+                if (apartment) {
                     const entry = await Entry_dal.getEntryById(apartment.entry_id);
-                    if(entry){
+                    if (entry) {
                         const building = await Building_dal.getBuildingById(entry.building_id);
-                        if(building){
+                        if (building) {
                             if (building.id == req.query.building_id)
-                                response.push(element.dataValues);
+                                response.push(tenant);
                         }
                         else
-                        res.status(404).send({
-                            message: `Cannot find building with id=${entry.building_id}.`
-                        });
+                            res.status(404).send({
+                                message: `Cannot find building with id=${entry.building_id}.`
+                            });
                     }
                     else
                         res.status(404).send({
@@ -344,15 +397,15 @@ const getAllTenants = async (req, res) => {
                         });
                 }
                 else
-                res.status(404).send({
-                    message: `Cannot find apartment with id=${element.apartment_id}.`
-                });
+                    res.status(404).send({
+                        message: `Cannot find apartment with id=${element.apartment_id}.`
+                    });
             }
         }
         else
-        res.status(404).send({
-            message: `Cannot find tenants at all.`
-        });
+            res.status(404).send({
+                message: `Cannot find tenants at all.`
+            });
         return res.send(response);
     }
     catch (err) {
@@ -363,65 +416,98 @@ const getAllTenants = async (req, res) => {
     };
 }
 
-const getTenantWhereParkingPermitIsTrue = async (req, res) => {//שולחים גם פרמס וגם קוארי כדי שהוא יקלוט שלא הכוונה לשליפת גט רגילה
-    if(!req.query.building_id)
+const getTenantWhereParkingPermitIsTrue = async (req, res) => {
+    if (!req.params.building_id)
         res.status(404).send("The field building_id required");
     var response = [];
     try {
-        const premits = await ParkingPermits_dal.getAllParking_premits();
-        if(premits){
-            for (let i = 0; i < premits.length; i++) {
-                const element = premits[i];
-                const tenant = await Tenant_dal.getTenantById(element.tenant_id);
-                if(tenant){
+        const tenants = await Tenant_dal.getAllTenants();
+        if (tenants) {
+            for (let i = 0; i < tenants.length; i++) {
+                const tenant = tenants[i];
+                if (tenant.parking_premit == true) {
                     const apartment = await Apartment_dal.getApartment(tenant.apartment_id);
-                    if(apartment){
+                    if (apartment) {
                         const entry = await Entry_dal.getEntryById(apartment.entry_id);
-                        if(entry){
+                        if (entry) {
                             const building = await Building_dal.getBuildingById(entry.building_id);
-                            if(building){
-                                if (building.id == req.query.building_id)
-                                    response.push(element.dataValues);
+                            if (building) {
+                                if (building.id == req.params.building_id)
+                                    response.push(tenant);
                             }
                             else
+                                res.status(404).send({
+                                    message: `Cannot find parking premit in building ${req.query.building_id}.`
+                                });
+                        }
+                        else
                             res.status(404).send({
                                 message: `Cannot find parking premit in building ${req.query.building_id}.`
                             });
-                        }
-                        else
+                    }
+                    else
                         res.status(404).send({
                             message: `Cannot find parking premit in building ${req.query.building_id}.`
                         });
-                    }
-                    else
-                    res.status(404).send({
-                        message: `Cannot find parking premit in building ${req.query.building_id}.`
-                    });
                 }
-                else
-                res.status(404).send({
-                    message: `Cannot find parking premit in building ${req.query.building_id}..`
-                });
             }
         }
         else
-        res.status(404).send({
-            message: `Cannot find parking premit in building ${req.query.building_id}.`
+            res.status(404).send({
+                message: `Cannot find parking premit in building ${req.query.building_id}.`
+            });
+        res.send(response);
+    }
+    catch (err) {
+        res.status(500).send({
+            message:
+                err.message || "Some error occurred while retrieving tenants."
         });
-        var response2 = []
-        for (let i = 0; i < response.length; i++) {
-            const element = response[i];
-            if (element.is_allowed == true){
-                const tenant = await Tenant_dal.getTenantById(element.tenant_id);
-                if(tenant)
-                    response2.push(tenant);
-                else
-                res.status(404).send({
-                    message: `Cannot find tenant with id =${element.tenant_id}.`
-                });
+    };
+}
+
+const getTenantWhereParkingPermitIsFalse = async (req, res) => {
+    if (!req.params.building_id)
+        res.status(404).send("The field building_id required");
+    var response = [];
+    try {
+        const tenants = await Tenant_dal.getAllTenants();
+        if (tenants) {
+            for (let i = 0; i < tenants.length; i++) {
+                const tenant = tenants[i];
+                if (tenant.parking_premit == false) {
+                    const apartment = await Apartment_dal.getApartment(tenant.apartment_id);
+                    if (apartment) {
+                        const entry = await Entry_dal.getEntryById(apartment.entry_id);
+                        if (entry) {
+                            const building = await Building_dal.getBuildingById(entry.building_id);
+                            if (building) {
+                                console.log("building.id == req.query.building_id", building.id, req.query.building_id);
+                                if (building.id == req.params.building_id)
+                                    response.push(tenant);
+                            }
+                            else
+                                res.status(404).send({
+                                    message: `Cannot find parking premit in building ${req.query.building_id}.`
+                                });
+                        }
+                        else
+                            res.status(404).send({
+                                message: `Cannot find parking premit in building ${req.query.building_id}.`
+                            });
+                    }
+                    else
+                        res.status(404).send({
+                            message: `Cannot find parking premit in building ${req.query.building_id}.`
+                        });
+                }
             }
         }
-        res.send(response2);
+        else
+            res.status(404).send({
+                message: `Cannot find parking premit in building ${req.query.building_id}.`
+            });
+        res.send(response);
     }
     catch (err) {
         res.status(500).send({
@@ -448,11 +534,52 @@ const postSendMsgToManager = (req, res) => {
         });
 }
 
+const changePassword = async (req, res) => {
+    try {
+        const tenant_id = req.params.tenant_id;
+        const newPassword = req.query.newPassword;
+        const oldPassword = req.query.oldPassword;
+
+        const tenant = await Tenant_dal.getTenantById(tenant_id);
+        if (tenant) {
+            console.log("tenant", tenant);
+            const match = await bcrypt.compare(oldPassword, tenant.password);
+            if (match === true) {
+                const hashedPwd = await bcrypt.hash(newPassword, newPassword.length);
+                tenant.password = hashedPwd;
+                const update = await Tenant_dal.updateTenant(tenant.id, tenant);
+                if (update) {
+                    res.status(200).send(tenant);
+                }
+                else
+                    res.status(404).send({
+                        message: `Cannot update tenant's password with id =${element.tenant_id}.`
+                    });
+            }
+            else
+                res.status(404).send({
+                    message: `The details is incorrect.`
+                });
+        }
+        else
+            res.status(404).send({
+                message: `The details is incorrect.`
+            });
+    }
+    catch (err) {
+        res.status(500).send({
+            message:
+                err.message || "Some error occurred while retrieving tenants."
+        });
+    }
+}
+
 module.exports = {
     createTenant,
     deleteTenant,
     updateTenant,
     getTenantById,
+    getAllTenantData,
     getAllTenants,
     getTenantByName,
     getTenantByCarNum,
@@ -460,4 +587,6 @@ module.exports = {
     getTenantByPhone,
     postSendMsgToManager,
     getTenantWhereParkingPermitIsTrue,
+    getTenantWhereParkingPermitIsFalse,
+    changePassword
 }

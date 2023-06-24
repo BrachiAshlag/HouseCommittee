@@ -1,7 +1,5 @@
 const db = require('../models/index')
 const Apartment = db.apartments;
-const { Op } = require('sequelize');
-const { sequelize } = require('../models/index');
 
 const createApartment = async (apartmentToAdd) => {
     return await Apartment.create(apartmentToAdd);

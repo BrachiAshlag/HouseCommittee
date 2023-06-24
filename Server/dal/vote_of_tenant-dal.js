@@ -22,8 +22,11 @@ const getTenantVote = async (id) => {
 }
 
 const getAllTenantVotes = async (voteId) => {
+    console.log("voteId",voteId);
     return await TenantVote.findAll({ where: { vote_id: voteId } });
 }
+
+
 
 module.exports = {
     createTenantVote,

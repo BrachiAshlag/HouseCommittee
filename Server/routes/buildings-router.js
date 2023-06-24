@@ -7,7 +7,9 @@ const BuildingRouter = express.Router();
 BuildingRouter.route("/")
     .get(buildings.getAllBuildings)
     .post(buildings.createBuilding);
-    
+  
+BuildingRouter.route("/last")
+    .get(buildings.getLastBuildings)
  
 BuildingRouter.route("/:id")
     .get(buildings.getBuilding)

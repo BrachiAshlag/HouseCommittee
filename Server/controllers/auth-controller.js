@@ -5,48 +5,74 @@ const Apartment_dal = require("../dal/apartments-dal");
 const Admin_dal = require("../dal/admin-dal");
 const mailer = require("../services/mail");
 const generator = require('generate-password');
-const tenantController = require("../controllers/tenants-controller");
 
 const bcrypt = require('bcrypt')
 
-const login = async (req, res) => {//לבדוק אחרי שמאחדים את הפרוייקטים אם עובד אחרי שיש אפשרות להוסיף דייר עם סיסמא מוצפנת
-    const building_id = req.body.building_id;
-    const tenant_id = req.body.tenant_id;
-    const password = req.body.password;
-    if (!building_id || !tenant_id || !password) // Confirm data
-        return res.status(400).json({ message: 'All fields are required' });
-    const tenant = await Tenant_dal.getTenantById(tenant_id);
-    if (tenant) {
-        var hashedPwd = await bcrypt.hash(password, 10)
-        const match = await bcrypt.compare(password, tenant.password);
+const adminLogin = async (req, res) => {
+    console.log("adminLogin");
+    const tenant_id = req.query.tenant_id;
+    const password = req.query.password;
+    if (!tenant_id || !password)
+        return res.status(400).json({ message: 'מספר זיהוי וסיסמא נדרשים' });
+    const admin = await Admin_dal.getAdminById(tenant_id);
+    if (admin) {
+        console.log("admin", admin);
+        const match = await bcrypt.compare(password, admin.password);
+        console.log("match", match);
         if (match === false)
             return res.status(401).json({ message: 'Unauthorized' });
         else {
+            res.status(200).send({ message: `entered the system` });
+        }
+    }
+    else res.status(401).json({ message: 'Unauthorized' })
+}
+
+const tenantLogin = async (req, res) => {
+    const building_id = req.query.building_id;
+    const tenant_id = req.query.tenant_id;
+    const password = req.query.password;
+    if (!building_id || !tenant_id || !password)
+        return res.status(400).json({ message: 'מספר זיהוי וסיסמא נדרשים' });
+    const tenant = await Tenant_dal.getTenantById(tenant_id);
+    if (tenant) {
+        console.log("tenant");
+        const match = await bcrypt.compare(password, tenant.password);
+        if (match === false){
+            res.status(401).json({ message: 'Unauthorized' });
+        }
+        else {
             const apartment = await Apartment_dal.getApartment(tenant.apartment_id);
             if (apartment) {
+                console.log("apartment");
                 const entry = await Entry_dal.getEntryById(apartment.entry_id);
                 if (entry) {
+                    console.log("entry");
                     const building = await Building_dal.getBuildingById(entry.building_id);
                     if (building) {
-                        if (building.id == building_id)
-                            res.status(201).json({ message: "The identification was performed successfully" });
+                        console.log("building.id", building.id);
+                        console.log("building_id", building_id);
+                        if (building.id == building_id) {
+                            res.status(200).json({ message: "The identification was performed successfully" });
+                        }
+                        else res.status(401).send({ message: `Unauthorized` });
                     }
-                    else res.status(404).send({ message: `Cannot find building with id=${entry.building_id}.` });
+                    else res.status(401).send({ message: `Unauthorized` });
                 }
-                else res.status(404).send({ message: `Cannot find entry with id=${apartment.entry_id}.` });
+                else res.status(401).send({ message: `Unauthorized` });
             }
-            else res.status(404).send({ message: `Cannot find apartment with id=${tenant.apartment_id}.` });
+            else res.status(401).send({ message: `Unauthorized` });
         }
-        // res.status(404).json({ message: "The password is incorrect" });
+        // res.status(401).json({ message: "The password is incorrect" });
     }
-    else res.status(400).json({ message: 'Unauthorized' })
+    else res.status(401).json({ message: 'Unauthorized' })
 }
 
 const register = async (req, res) => {
-    const adminId = req.body.adminId;
-    const password = req.body.password;
+    const adminId = req.query.adminId;
+    const password = req.query.password;
     if (!adminId || !password) // Confirm data
-        return res.status(400).json({ message: 'All fields are required' })
+        return res.status(400).json({ message: 'מספר זיהוי וסיסמא נדרשים' })
     const admin = await Admin_dal.getAdminById(adminId);
     if (admin) {
         const match = await bcrypt.compare(password, admin.password);
@@ -54,14 +80,15 @@ const register = async (req, res) => {
             return res.status(401).json({ message: 'Unauthorized' })
         return res.status(201).json({ message: "The identification was performed successfully" });
     }
-    return res.status(400).json({ message: 'Unauthorized' })
+    return res.status(401).json({ message: 'Unauthorized' })
 }
 
 const forgetPassword = async (req, res) => {
-    const building_id = req.body.building_id;
-    const tenant_id = req.body.tenant_id;
+    const email = req.query.email;
+    const building_id = req.query.building_id;
+    const tenant_id = req.query.tenant_id;
     if (!building_id || !tenant_id) // Confirm data
-        return res.status(400).json({ message: 'All fields are required' });
+        return res.status(400).json({ message: 'קוד בניין ומספר זיהוי נדרשים, אם מספר הבניין חסר נתן לפנות לוועד הבית' });
     const tenant = await Tenant_dal.getTenantById(tenant_id);
     if (tenant) {
         const apartment = await Apartment_dal.getApartment(tenant.apartment_id);
@@ -70,7 +97,7 @@ const forgetPassword = async (req, res) => {
             if (entry) {
                 const building = await Building_dal.getBuildingById(entry.building_id);
                 if (building) {
-                    if (building.id == building_id) {
+                    if (building.id == building_id && email == tenant.email) {
                         var flag = false;
                         var password = null;
                         var hashedPwd = null;
@@ -82,41 +109,49 @@ const forgetPassword = async (req, res) => {
                                 lowercase: true,
                                 strict: true
                             });
-                            hashedPwd = await bcrypt.hash(password, 10)
+                            hashedPwd = await bcrypt.hash(password, 10);
                             var adm = await Tenant_dal.getByPassword(hashedPwd);
                             if (adm != undefined)
                                 flag = true;
                         }
-
                         tenant.password = hashedPwd;
-                        await Tenant_dal.updateTenant(tenant.id, tenant);
-                        const to = tenant.email;
-                        const subject = "Restoring your password to the system and the Building Committee";
-                        const body = `Your password is ${password}`;
+                        console.log("password", password, "hashedPwd", hashedPwd);
+                        const update = await Tenant_dal.updateTenant(tenant.id, tenant.dataValues);
+                        if (update[0] === 1) {
+                            console.log("update", update);
+                            const to = tenant.email;
+                            const subject = "סיסמא חדשה לוועד הבית";
+                            const body = `היי ${tenant.name}!\nעקב בקשתך ייצרנו עבורך סיסמא חדשה למערכת לניהול וועד בית \n סיסמתך החדשה היא ${password}`;
 
-                        mailer.sendEmail(to, subject, body)
-                            .then(info => {
-                                console.log('Email sent: ', info.response);
-                                res.send("successfuly!!!!!!!!!!!!!!!!!!!!!!")
-                            })
-                            .catch(error => {
-                                console.log('Error sending email: ', error);
-                                res.status(500).send('Failed to send email');
-                            });
+                            mailer.sendEmail(to, subject, body)
+                                .then(info => {
+                                    console.log('Email sent: ', info.response);
+                                    res.send("successfuly!!!!!!!!!!!!!!!!!!!!!!")
+                                })
+                                .catch(error => {
+                                    console.log('Error sending email: ', error);
+                                    res.status(500).send('Failed to send email');
+                                });
+                        }
+                        else res.status(404).send({ message: `Cannot update` });
                     }
+                    else res.status(404).send({ message: `The details is not correct` });
                 }
-                else res.status(404).send({ message: `Cannot find building with id=${entry.building_id}.` });
+                else res.status(404).send({ message: `The details is not correct` });
             }
-            else res.status(404).send({ message: `Cannot find entry with id=${apartment.entry_id}.` });
+            else res.status(404).send({ message: `The details is not correct` });
         }
-        else res.status(404).send({ message: `Cannot find apartment with id=${tenant.apartment_id}.` });
+        else res.status(404).send({ message: `The details is not correct` });
     }
     else res.status(404).json({ message: "The password is incorrect" });
 
 }
 
+
+
 module.exports = {
-    login,
+    adminLogin,
+    tenantLogin,
     register,
     forgetPassword
 }

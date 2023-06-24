@@ -1,7 +1,7 @@
 const apartment_con = require("../controllers/apartments-controller");
 const mailer = require("./mail");
 const Tenant_dal = require("../dal/tenants-dal");
-const Parking_premits_dal = require("../dal/parking_premit-dal");
+// const Parking_premits_dal = require("../dal/parking_premit-dal");
 const Apartment_dal = require("../dal/apartments-dal");
 const payment_setting_dal = require("../dal/payment_settings-dal");
 
@@ -22,7 +22,7 @@ const updateDebt = async () => {
             const pays = await payment_setting_dal.updatePayment_settings(element.entry.building.payment_setting.id, element.entry.building.payment_setting.dataValues);
             if(pays){
                 const email = element.tenant.email;
-                mailer.sendEmail(email, "House committee fees",`Hi ${element.tenant.name}!\n From today until ${element.entry.building.payment_setting.next_payment.toLocaleString().slice(0,9)} you must pay house comittee fees, in the amount of: ${element.debt}`)
+                mailer.sendEmail(email, "חוב לוועד הבית שלך",`שלום ${element.tenant.name}!\n מהיום ועד ה ${element.entry.building.payment_setting.next_payment.toLocaleString().slice(0,9)} עליך לשלם את חובך לוועד הבית שלך העומד על סך ${element.debt} שקלים.`)
                     .then(info => {
                         console.log('Email sent: ', info.response);
                     })
@@ -41,13 +41,13 @@ const updateDebt = async () => {
     }
 }
 
-const weekToPay = async () => {//לתרגם את המייל נורמלי
+const weekToPay = async () => {
     const ap = await Apartment_dal.getWeekToPayApartment();
     if (ap) {
         for (let i = 0; i < ap.length; i++) {
             const element = ap[i];
             const email = element.tenant.email;
-            mailer.sendEmail(email, `A week for the collect` , `Hi ${element.tenant.name}!\n in a week you will have to pay your house committee your ststic payment.\nYour amount for paying is ${element.pay_per_month}`)
+            mailer.sendEmail(email, `נותר שבוע לגביית דמי וועד הבית` , `היי ${element.tenant.name}!\nבתוך שבוע תצטרך לשלם את דמי וועד הבית שלך.\nהסכום לתשלןם הוא ${element.pay_per_month}`)
                 .then(info => {
                     console.log('Email sent: ', info.response);
                 })
@@ -89,17 +89,14 @@ const late = async () => {
                     const tenants = await Tenant_dal.getTenantByApartmentId(element.id);
                     for (let j = 0; j < tenants.length; j++) {
                         const element2 = tenants[j];
-                        const allow = await Parking_premits_dal.getParkingByTenantId(element2.id);
-                        if (allow) {
-                            if (allow.is_allowed == 1) {
-                                allow.is_allowed = 0;
-                                await Parking_premits_dal.updateParking_premit(allow.id, allow.dataValues);
-                            }
+                        if (element2.parking_premit == 1) {
+                            element2.parking_premit = 0;
+                            await Tenant_dal.updateTenant(element2.id, element2.dataValues);
                         }
                     }
                     const res = await Tenant_dal.getTenantById(element.res_tenant_id);
                     const email = res.email;
-                    mailer.sendEmail(email, `Hi ${res.name}!\n You are late to pay to your house committee`, `Your debt from last monthes is ${element.debt - element.pay_per_month}`)
+                    mailer.sendEmail(email, `היי ${res.name}!\nהנך מאחר/ת בתשלום דמי וועד הבית שלך`, `חובך עומד על סך ${element.debt - element.pay_per_month}`)
                         .then(info => {
                             console.log('Email sent: ', info.response);
                         })

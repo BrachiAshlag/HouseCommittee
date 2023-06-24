@@ -63,7 +63,6 @@ const getAllParks = async (req, res) => {
                     else
                     res.status(404).send({
                         message: `Cannot find parks in building ${req.query.building_id}.`
-
                     });
                 }
                 else
@@ -76,6 +75,32 @@ const getAllParks = async (req, res) => {
         else
         res.status(404).send({
             message: `Cannot find parks in building ${req.query.building_id}.`
+        });
+    }
+    catch(err){
+        res.status(500).send({
+            message:
+                err.message || "Some error occurred while retrieving parks."
+        });
+    }   
+}
+
+const getParksByApartmentId = async (req, res) => {
+    var response = [];
+    try{
+        const parks = await parks_dal.getAllParks();
+        if(parks){
+            for (let i = 0; i < parks.length; i++) {
+                const element = parks[i];
+                if(element.dataValues.apartment_id==req.params.id){
+                    response.push(element.dataValues)
+                }                    
+            }
+            res.send(response);
+        }
+        else
+        res.status(404).send({
+            message: `Cannot find parks that belongs to apartment with id: ${req.params.apartment_id}.`
         });
     }
     catch(err){
@@ -109,5 +134,6 @@ module.exports = {
     createPark,
     deletePark,
     getAllParks,
-    getParkById
+    getParkById,
+    getParksByApartmentId
 }

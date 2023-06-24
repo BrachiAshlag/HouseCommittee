@@ -11,22 +11,31 @@ tenantRouter.route("/:id")
     .delete(tenants.deleteTenant)
     .put(tenants.updateTenant);
 
+tenantRouter.route("/allTenant/:id")
+    .get(tenants.getAllTenantData);
+
 tenantRouter.route("/byApartment/:id")
-    .get(tenants.getTenantByApartmentId)
+    .get(tenants.getTenantByApartmentId);
 
 tenantRouter.route("/byPhone/:phone")
-    .get(tenants.getTenantByPhone)
+    .get(tenants.getTenantByPhone);
 
 tenantRouter.route("/byName/:Name")
-    .get(tenants.getTenantByName)
+    .get(tenants.getTenantByName);
 
-tenantRouter.route("/parkingPermitIsTrue/:Building_id")
-    .get(tenants.getTenantWhereParkingPermitIsTrue)
+tenantRouter.route("/parkingPermitIsTrue/:building_id")
+    .get(tenants.getTenantWhereParkingPermitIsTrue);
+
+tenantRouter.route("/parkingPermitIsFalse/:building_id")
+    .get(tenants.getTenantWhereParkingPermitIsFalse);
 
 tenantRouter.route("/byCarNum/:carNum")
-    .get(tenants.getTenantByCarNum)
+    .get(tenants.getTenantByCarNum);
 
 tenantRouter.route("/sendMsgToManager/:email")
-    .post(tenants.postSendMsgToManager)
+    .post(tenants.postSendMsgToManager);
+
+tenantRouter.route("/changePassword/:tenant_id")
+    .put(tenants.changePassword);
 
 module.exports = tenantRouter;

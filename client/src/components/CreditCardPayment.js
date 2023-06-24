@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useContext, useEffect, useRef, useState } from 'react';
 import { Form, Field } from 'react-final-form';
 import { InputText } from 'primereact/inputtext';
 import { Button } from 'primereact/button';
@@ -9,48 +9,80 @@ import { InputMask } from 'primereact/inputmask';
 import { AutoComplete } from "primereact/autocomplete";
 import '../Css/FormDemo.css';
 
-import { fetchData } from '../Hooks/useAxiosGet';
-        
-const tenant = { building_id:1 }
+import { fetchData, postData } from '../Hooks/useAxiosGet';
+import { Toast } from 'primereact/toast';
+import { ConfirmPopup } from 'primereact/confirmpopup';
+import UserContext from './UserContext';
 
-
+// const tenant = { building_id: 1, apartment_id:1 }
 
 export default function CreditCardPayment() {
-    const [objToData, setObjToData] = useState([])
+    // const tenant = useContext(UserContext)?.data;
+    const [tenant, setTenant] = useState(JSON.parse(localStorage.getItem("tenant")));
+    const [objToData, setObjToData] = useState({ payments_date: new Date(), apartment_id: tenant.apartment_id });
     const [data, setData] = useState([])
+
     const [showMessage, setShowMessage] = useState(false);
     const [formData, setFormData] = useState({});
 
     const [selectedItem, setSelectedItem] = useState(null);
     const [filteredItems, setFilteredItems] = useState(null);
 
-    const get = async () => {
-        const myData = await fetchData(`month?building_id=${tenant.building_id}`);
+    const [visible, setVisible] = useState(false);
+    const toast = useRef(null);
+    const buttonEl = useRef(null);
+
+    const handleChange = async (selected, key) => {
+        setObjToData((prev) => ({ ...prev, [key]: selected }));
+    }
+
+    const getMonth = async () => {
+        const myData = await fetchData(`month?building_id=${tenant?.building_id}`);
         setData(myData);
     }
 
+    const getPaymentForm = async () => {
+        const myData = await fetchData(`paymentForm?building_id=${tenant?.building_id}`);
+        if (myData) {
+            for (let i = 0; i < myData.length; i++) {
+                const element = myData[i];
+                if (element.description == "אשראי") {
+                    handleChange(element.id, "payment_form_id")
+                }
+            }
+        }
+    }
+
     useEffect(() => {
-        get()
+        getMonth();
+        getPaymentForm();
     }, [])
 
-    const handleChange = async(selected, key) => {
-    setObjToData((prev) => ({ ...prev, [key]: selected }));           
-    }
-   
+    const accept = async () => {
+        const res = await postData(`tenantPayment`, objToData);
+        if (res == 200 || res == 201)
+            toast.current.show({ severity: 'success', detail: 'התשלום בוצע בהצלחה', life: 3000 });
+        else
+            toast.current.show({ severity: 'error', detail: "התשלום לא בוצע, ישנם פרטים חסרים", life: 3000 });
+    };
+
+    const reject = () => {
+        toast.current.show({ severity: 'warn', detail: 'התשלום לא בוצע', life: 3000 });
+    };
+
     const searchItems = (event) => {
-        if(data?.length){
+        if (data?.length) {
             let query = event.query;
             let _filteredItems = [];
 
-            for(let i = 0; i < data.length; i++) {
+            for (let i = 0; i < data.length; i++) {
                 const month = data[i];
                 if (month.month.toLowerCase().indexOf(query.toLowerCase()) === 0) {
                     _filteredItems.push(month);
                 }
             }
-            console.log(_filteredItems);
             setFilteredItems(_filteredItems);
-            }
+        }
     }
 
     const validate = (data) => {
@@ -90,20 +122,21 @@ export default function CreditCardPayment() {
                 <div className="card">
                     <Card title="תשלום באשראי">
                         <Form onSubmit={onSubmit} initialValues={{ month: "", amount: "", id: "", cardNum: "", validity: "", back: "", payNum: "" }} validate={validate} render={({ handleSubmit }) => (
-                            <form onSubmit={handleSubmit} className="p-fluid" style={{ direction: "ltr"}}>
+                            <form onSubmit={handleSubmit} className="p-fluid" style={{ direction: "ltr" }}>
                                 <Field name="month" render={({ input, meta }) => (
                                     <div className="field">
                                         <span className="p-float-label">
-                                            <AutoComplete 
-                                                value={selectedItem} 
-                                                suggestions={filteredItems} 
+                                            <AutoComplete
+                                                value={selectedItem}
+                                                suggestions={filteredItems}
                                                 completeMethod={searchItems}
-                                                virtualScrollerOptions={{ itemSize: 38 }} 
-                                                field="month" 
-                                                dropdown 
+                                                virtualScrollerOptions={{ itemSize: 38 }}
+                                                field="month"
+                                                dropdown
                                                 onChange={(e) => {
                                                     setSelectedItem(e.value);
-                                                    handleChange()
+
+                                                    handleChange(e.value.id, "month");
                                                 }}
                                             />
                                             <label htmlFor="month" className={classNames({ 'p-error': isFormFieldValid(meta) })}>*תשלום עבור חודש</label>
@@ -111,10 +144,16 @@ export default function CreditCardPayment() {
                                         {getFormErrorMessage(meta)}
                                     </div>
                                 )} />
-                                 <Field name="amount" render={({ input, meta }) => (
+                                <Field name="amount" render={({ input, meta }) => (
                                     <div className="field">
                                         <span className="p-float-label">
-                                            <InputText id="amount" {...input} className={classNames({ 'p-invalid': isFormFieldValid(meta) })} />
+                                            <InputText
+                                                id="amount"
+                                                className={classNames({ 'p-invalid': isFormFieldValid(meta) })}
+                                                onChange={e => {
+                                                    handleChange(e.target.value, "amount")
+                                                }}
+                                            />
                                             <label htmlFor="amount" className={classNames({ 'p-error': isFormFieldValid(meta) })}>*סכום</label>
                                         </span>
                                         {getFormErrorMessage(meta)}
@@ -123,7 +162,7 @@ export default function CreditCardPayment() {
                                 <Field name="id" render={({ input, meta }) => (
                                     <div className="field">
                                         <span className="p-float-label">
-                                            <InputMask id="id" /*{...input}*/ mask='999999999' /*autoClear={false} */className={classNames({ 'p-invalid': isFormFieldValid(meta) })} />
+                                            <InputMask id="id" /*{...input}*/ mask='999999999' className={classNames({ 'p-invalid': isFormFieldValid(meta) })} />
                                             <label htmlFor="id" className={classNames({ 'p-error': isFormFieldValid(meta) })}>*מספר זהות בעל הכרטיס</label>
                                         </span>
                                         {getFormErrorMessage(meta)}
@@ -159,13 +198,26 @@ export default function CreditCardPayment() {
                                 <Field name="payNum" render={({ input, meta }) => (
                                     <div className="field">
                                         <span className="p-float-label">
-                                            <InputText id="payNum" {...input} className={classNames({ 'p-invalid': isFormFieldValid(meta) })} />
+                                            <InputText id="payNum" /*{...input}*/ onChange={e => handleChange(parseInt(e.target.value), "num_of_payments")} className={classNames({ 'p-invalid': isFormFieldValid(meta) })} />
                                             <label htmlFor="payNum" className={classNames({ 'p-error': isFormFieldValid(meta) })}>*מספר תשלומים</label>
                                         </span>
                                         {getFormErrorMessage(meta)}
                                     </div>
                                 )} />
-                                <Button type="submit" label="ביצוע התשלום" className="mt-2" icon = "pi pi-credit-card"/>
+                                <Toast ref={toast} />
+                                <ConfirmPopup target={buttonEl.current} visible={visible} onHide={() => setVisible(false)}
+                                    message="האם הנך בטוח/ה שברצונך לאשר את התשלום" icon="pi pi-exclamation-triangle" accept={accept} reject={reject} />
+                                <div className="card flex justify-content-center">
+                                    <Button
+                                        ref={buttonEl}
+                                        onClick={() => {
+                                            setVisible(true);
+                                        }}
+                                        icon="pi pi-credit-card"
+                                        label="ביצוע התשלום"
+                                        style={{ direction: "ltr" }}
+                                    />
+                                </div>
                             </form>
                         )} />
                     </Card>

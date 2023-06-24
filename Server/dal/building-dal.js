@@ -1,5 +1,6 @@
 const db = require('../models')
 const Building = db.buildings;
+const { QueryTypes } = require('sequelize');
 
 const createBuilding = async (buildingToAdd) => {
     return Building.create(buildingToAdd);
@@ -26,10 +27,15 @@ const getAllBuildings = () => {
     return Building.findAll({});
 }
 
+const getLastBuildings = () => {
+    return Building.sequelize.query("SELECT LAST_INSERT_ID();", { type: QueryTypes.SELECT });
+}
+
 module.exports = {
     createBuilding,
     deleteBuilding,
     updateBuilding,
     getBuildingById,
-    getAllBuildings
+    getAllBuildings,
+    getLastBuildings
 }

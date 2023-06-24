@@ -13,8 +13,7 @@ module.exports = (sequelize, DataTypes)=>{
         expenses_type_id:{
             type: DataTypes.INTEGER,
             references: expenses_kinds,
-            referenceskey: 'id',
-            allowNull: true
+            referenceskey: 'id'
         },
         amount: {
             type: DataTypes.INTEGER, 
@@ -34,10 +33,6 @@ module.exports = (sequelize, DataTypes)=>{
         },
         description: {
             type: DataTypes.STRING
-        },
-        permanent: {
-            type: DataTypes.BOOLEAN, 
-            allowNull: false
         },
         num_of_payments: {
             type: DataTypes.INTEGER, 

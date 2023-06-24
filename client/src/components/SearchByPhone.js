@@ -1,54 +1,140 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useContext} from 'react';
 import { Button } from 'primereact/button';
 import { Card } from 'primereact/card';
 import { AutoComplete } from "primereact/autocomplete";
 import '../Css/FormDemo.css';
-import { useNavigate } from "react-router-dom" 
+import { fetchData } from "../Hooks/useAxiosGet"
+import Apartment from './Apartment'; 
+import { useNavigate } from "react-router-dom"; 
+import { Dropdown } from 'primereact/dropdown';
+import UserContext from './UserContext';
         
-const tenant = { id: 213843360, apartment_id: 1, entry_id: 1, building_id: 1 }
-
+// const tenant = { id: 213843360, apartment_id: 1, entry_id: 1, building_id: 1 }
 
 const SearchByPhone = () => {
+      // const tenant = useContext(UserContext)?.data;
+  const [tenant, setTenant]= useState(JSON.parse(localStorage.getItem("tenant")));
     const navigate = useNavigate();
 
-    const [selectedPark, setSelectedPark] = useState(null);
-    const [filteredParks, setFilteredParks] = useState(null);
+    const [selectedItem, setSelectedItem] = useState(null);
+    const [selectedTenant, setSelectedTenant] = useState(null);
+    const [filteredTenants, setFilteredTenants] = useState(null);
+    const [tenants, setTenants] = useState([]);
+    const [apartment, setApartment] = useState(null);
+    const [resTenant, setResTenant] = useState(null);
+    const [show, setShow] = useState(null);
+    const [entry, setEntry] = useState(null);
+    const [parks, setParks] = useState(null);
+    const [storages, setStorages] = useState(null);
+    const [apart, setApart] = useState(null);
 
-    const parks = [
+    const getTenants = async (url) => {
+        const myData = await fetchData(url);
+        setTenants(myData);
+
+    }
+
+    useEffect(() => {
+        getTenants(`tenant?building_id=${tenant?.building_id}`);
+    }, [])
+
+    const items = [
         {
-            "id": 1,
-            "apartment_id": 2,
-            "description": 15
+            "description": "דירה",
+            "navigate": "searchByApartment"
         },
         {
-            "id": 2,
-            "apartment_id": 2,
-            "description": 16
+            "description": "שם",
+            "navigate": "searchByName"
         },
         {
-            "id": 3,
-            "apartment_id": 1,
-            "description": 54
+            "description": "חניה",
+            "navigate": "searchByPark"
+        },
+        {
+            "description": "מחסן",
+            "navigate": "searchByStorage"
+        },
+        {
+            "description": "טלפון",
+            "navigate": "searchByPhone"
+        },
+        {
+            "description": "מספר רכב",
+            "navigate": "searchByCarNum"
         }
     ]
 
-    const searchParks = (event) => {
-        if(parks?.length){
-            let query = event.query;
-            let _filteredParks = [];
+    useEffect(() => {
+        if(selectedItem!=null)
+            navigate(`/${selectedItem.navigate}`);
+    }, [selectedItem])
 
-            for(let i = 0; i < parks?.length; i++) {
-                let park = parks[i];
-                if (park.description.toString().indexOf(query) === 0) {
-                    _filteredParks.push(park);
-                }
-            }
-        setFilteredParks(_filteredParks);
-        }
+    const getApartment = async (url) => {
+        const myData = await fetchData(url);
+        setApartment(myData);
+
     }
 
-    const show = () => {
-       return <h1>HELLO!</h1>
+    useEffect(() => {
+        if(selectedTenant)
+            getApartment(`apartment/ByTenant/${selectedTenant.id}`)
+    }, [show])
+
+    const get = async (url, s) => {
+        const myData = await fetchData(url);
+        if(s==="tenant")
+            setResTenant(myData);
+        if(s==="entry")
+            setEntry(myData);
+        if(s==="parks")
+            setParks(myData);
+        if(s==="storages")
+            setStorages(myData);
+
+    }
+
+    useEffect(() => {
+        if(apartment){
+            get(`tenant/${apartment.res_tenant_id}`, "tenant");
+            get(`entry/${apartment.entry_id}`, "entry");
+            get(`park/byApartment/${apartment.id}`, "parks");
+            get(`storage/byApartment/${apartment.id}`, "storages");
+        }
+    }, [apartment])
+
+    useEffect(() => {
+        if(entry && parks && storages && resTenant){
+            const s = storages.map((item) => item.description);
+            const p = parks.map((item) => item.description);
+            const x={
+                family:resTenant.name,
+                entry:entry.nickname,
+                floor:apartment.floor,
+                apartmentNum:apartment.description,
+                email:resTenant.email,
+                phone:resTenant.phone,
+                storages:s,
+                parks:p
+            }
+            setApart(x);
+        }
+    }, [entry, parks, storages, resTenant])
+
+
+    const searchTenants = (event) => {
+        if(tenants?.length){
+            let query = event.query;
+            let _filteredTenants = [];
+
+            for(let i = 0; i < tenants?.length; i++) {
+                let tenant = tenants[i];
+                if (tenant.phone.indexOf(query) === 0) {
+                    _filteredTenants.push(tenant);
+                }
+            }
+        setFilteredTenants(_filteredTenants);
+        }
     }
 
     return (
@@ -58,12 +144,22 @@ const SearchByPhone = () => {
                 <div className="card">
                     <Card title="צפייה בדירה">
                         <span className="p-float-label">
-                        <span style={{ fontSize: "1rem", fontWeight: "700", marginBottom: "0.5rem" }}>חניה </span>
-                        <AutoComplete value={selectedPark} suggestions={filteredParks} completeMethod={searchParks} style={{direction:"ltr"}}
-                                virtualScrollerOptions={{ itemSize: 38 }} field="description" dropdown onChange={(e) => setSelectedPark(e.value)}/>
+                        <span style={{ fontSize: "1rem", fontWeight: "700", marginBottom: "0.5rem" }}>חיפוש לפי </span>
+                        <Dropdown value={selectedItem} onChange={(e) => setSelectedItem(e.value)} options={items} optionLabel="description" 
+                            placeholder="דירה" className="w-full md:w-14rem" />
                         </span>
                         <br></br>
-                        <Button type="button" label="הצג " className="mt-2" icon = "pi pi-credit-card" onClick={()=>{show()}}/>
+                        <span className="p-float-label">
+                        <span style={{ fontSize: "1rem", fontWeight: "700", marginBottom: "0.5rem" }}>טלפון </span>
+                        <AutoComplete value={selectedTenant} suggestions={filteredTenants} completeMethod={searchTenants} style={{direction:"ltr"}}
+                                virtualScrollerOptions={{ itemSize: 38 }} field="phone" dropdown onChange={(e) => setSelectedTenant(e.value)}/>
+                        </span>
+                        <br></br>
+                        <Button type="button" label="הצגת הדירה שנבחרה " className="mt-2" icon = "pi pi-home" style={{direction: "ltr"}} onClick={()=>{show?setShow(false):setShow(true)}}/>
+                        {
+                            apart?
+                            <Apartment obj={apart} ></Apartment>:<></>
+                        } 
                     </Card>
                 </div>
             </div>

@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useContext } from 'react';
 import { FilterMatchMode, FilterOperator } from 'primereact/api';
 import { DataTable } from 'primereact/datatable';
 import { Column } from 'primereact/column';
@@ -8,41 +8,42 @@ import { Calendar } from 'primereact/calendar';
 import { Button } from 'primereact/button';
 import { Dialog } from 'primereact/dialog';
 import { fetchData, postData } from "../Hooks/useAxiosGet"
+import UserContext from './UserContext';
 
-const tenant = { building_id: 1 }
+// const tenant = { building_id: 1 }
 function AddOrSubractDays(startingDate, number) {
     return new Date(new Date().setDate(startingDate.getDate() + number));
 }
 
 export default function IncomesTable() {
+    // const tenant = useContext(UserContext)?.data;
+    const [tenant, setTenant] = useState(JSON.parse(localStorage.getItem("tenant")));
     const [incomes, setIncomes] = useState([]);
     const [paymentType, setPaymentType] = useState([]);
 
     const [visible, setVisible] = useState(false);
 
-    const [startDate, setStartDate] = useState(AddOrSubractDays(new Date(), -30).toISOString().slice(0, 10));
-    const [endDate, setEndDate] = useState(new Date().toISOString().slice(0, 10));
+    const [startDate, setStartDate] = useState(AddOrSubractDays(new Date(), -30));
+    const [endDate, setEndDate] = useState(new Date());
 
     function AddOrSubractDaysToState(startingDate, number) {
-        setStartDate(new Date(new Date().setDate(startingDate.getDate() + number)).toISOString().slice(0,10));
+        setStartDate(new Date(new Date().setDate(startingDate.getDate() + number)));
     }
 
     const getPaymentType = async (url) => {
         const myData = await fetchData(url);
-        console.log(myData);
         setPaymentType(myData);
     }
 
     const getIncomes = async (url) => {
         const myData = await fetchData(url);
-        console.log(myData);
         setIncomes(myData);
     }
 
     useEffect(() => {
-        getIncomes(`tenantPayment?building_id=${tenant.building_id}&startDate=${startDate}&endDate=${endDate}`);
-        getPaymentType(`paymentForm?building_id=${tenant.building_id}`);
-    }, [startDate||endDate])
+        getIncomes(`tenantPayment?building_id=${tenant?.building_id}&startDate=${startDate}&endDate=${endDate}`);
+        getPaymentType(`paymentForm?building_id=${tenant?.building_id}`);
+    }, [startDate || endDate])
 
 
     const [filters, setFilters] = useState({
@@ -54,17 +55,17 @@ export default function IncomesTable() {
     });
     const [loading, setLoading] = useState(true);
 
-    const [selectedOption, setSelectedOption] = useState(null);
     const dateOptions = [
-        "הכנסות מהשבוע האחרון",
-        "הכנסות מהחודש האחרון",
-        "הכנסות מהשנה האחרונה",
-        "הכנסות בין שני תאריכים ספציפיים",
+        "מהשבוע האחרון",
+        "מהחודש האחרון",
+        "מהשנה האחרונה",
+        "בין שני תאריכים ספציפיים",
     ];
+    const [selectedOption, setSelectedOption] = useState(dateOptions[1]);
 
     useEffect(() => {
         setLoading(false);
-    }, [ startDate || endDate ]);
+    }, [startDate || endDate]);
 
     const amountBodyTemplate = (rowData) => {
         return (
@@ -109,17 +110,46 @@ export default function IncomesTable() {
     const paymentTypeRowFilterTemplate = (options) => {
 
         return (
-            paymentType?.length ?
-                <Dropdown
-                    value={options}
-                    options={paymentType.map(e => e.description)}
-                    onChange={(e) => options.filterApplyCallback(e.value)}
-                    placeholder="אמצעי תשלום"
-                    className="p-column-filter"
-                    style={{ minWidth: '12rem' }}
-                /> : <></>
+            paymentType?.length &&
+            <Dropdown
+                value={options}
+                options={paymentType.map(e => e.description)}
+                onChange={(e) => options.filterApplyCallback(e.value)}
+                placeholder="אמצעי תשלום"
+                className="p-column-filter"
+                style={{ minWidth: '12rem' }}
+            />
         );
     };
+
+    const dateFilterTemplate = () => {
+        return (
+            <Dropdown
+                value={selectedOption}
+                onChange={(e) => {
+                    setSelectedOption(e.value);
+                    switch (e.value) {
+                        case "מהשבוע האחרון":
+                            AddOrSubractDaysToState(new Date(), -7)
+                            break;
+                        case "מהחודש האחרון":
+                            AddOrSubractDaysToState(new Date(), -30)
+                            break;
+                        case "מהשנה האחרונה":
+                            AddOrSubractDaysToState(new Date(), -365)
+                            break;
+                        case "בין שני תאריכים ספציפיים":
+                            setVisible(true)
+                            break;
+                    }
+                }}
+                options={dateOptions}
+                placeholder="נא לבחור טווח"
+                className="w-full md:w-14rem"
+                style={{ width: "40%" }}
+            />
+        )
+    }
 
     return (
         <div className="card">
@@ -132,9 +162,10 @@ export default function IncomesTable() {
                 filterDisplay="row"
                 loading={loading}
                 header={
-                    <div style={{textAlign: "center", fontSize: "25pt"}}>הכנסות</div>
+                    <div style={{ textAlign: "center", fontSize: "25pt" }}>הכנסות</div>
                 }
-                emptyMessage="לא נמצאו פריטים מתאימים"
+                emptyMessage="לא נמצאו נתונים מתאימים"
+                style={{ margin: "1%" }}
             >
                 <Column
                     body={dateItemTemplate}
@@ -142,46 +173,8 @@ export default function IncomesTable() {
                     header="תאריך"
                     filter
                     filterPlaceholder='חיפוש לפי תאריך'
-                    filterHeader={
-                        <div className="card flex justify-content-center">
-                        <Dropdown
-                            value={selectedOption}
-                            onChange={(e) => {
-                                console.log("e.value", e.value);
-                                setSelectedOption(e.value);
-                                switch (e.value) {
-                                    case "הכנסות מהשבוע האחרון":
-                                        AddOrSubractDaysToState(new Date(), -7).toISOString().slice(0, 10)
-                                        break;
-                                    case "הכנסות מהחודש האחרון":
-                                        AddOrSubractDaysToState(new Date(), -30).toISOString().slice(0, 10)
-                                        break;
-                                    case "הכנסות מהשנה האחרונה":
-                                        AddOrSubractDaysToState(new Date(new Date() - 365)).toISOString().slice(0, 10)
-                                        break;
-                                    case "הכנסות בין שני תאריכים ספציפיים":
-                                        setVisible(true)
-                                        break;
-                                }
-                            }}
-                            options={dateOptions}
-                            placeholder="נא לבחור טווח"
-                            className="w-full md:w-14rem"
-                            style={{ width: "40%" }}
-                        /> 
-                        {/* לעשות אולי כפתור מחולק */}
-                        <Button 
-                            icon="pi pi-filter-slash" 
-                            onClick={() => {
-                                setSelectedOption(null);   
-                            }} 
-                            style={{ direction: "ltr" }}
-                        />
-                        {/* <button type="button" class="p-column-filter-menu-button p-link" aria-haspopup="true" aria-expanded="false" aria-label="Filter" onClick={() => {setSelectedOption(null) }}>
-                            <span class="pi pi-filter-icon pi-filter-slash" aria-hidden="true"></span>
-                        </button> */}
-                    </div>
-                    }
+                    filterElement={dateFilterTemplate}
+                    showFilterMenu={false}
                     style={{ minWidth: '12rem' }}
                 />
                 <Column
@@ -220,15 +213,14 @@ export default function IncomesTable() {
                 />
 
             </DataTable>
-            {/* :<></> }*/}
             <Dialog header="בחר את טווח התאריכים הרצוי" visible={visible} style={{ width: '50vw' }} onHide={() => setVisible(false)} >
-                <div className="card flex justify-content-center" style={{ direction: "ltr" }}>
+                <div className="card flex justify-content-center" style={{ direction: "rtl" }}>
                     <div>
                         <span>מתאריך </span>
-                        <Calendar value={startDate} onChange={(e) => setStartDate(e.value.toISOString().slice(0,10))} showIcon />
+                        <Calendar value={startDate} onChange={(e) => setStartDate(e.value)} dateFormat="dd/mm/yy" showIcon style={{ direction: "ltr" }} />
                         <span> </span>
                         <span>עד תאריך </span>
-                        <Calendar value={endDate} onChange={(e) => setEndDate(e.value.toISOString().slice(0,10))} showIcon /*style={{direction: "ltr"}}*/ />
+                        <Calendar value={endDate} onChange={(e) => setEndDate(e.value)} dateFormat="dd/mm/yy" showIcon style={{ direction: "ltr" }} />
                         <span> </span>
                     </div>
                 </div>

@@ -85,6 +85,31 @@ const getAllStorages = async (req, res) => {
     }   
 }
 
+const getStoragesByApartment = async (req, res) => {
+    var response = [];
+    try{
+        const storages = await storages_dal.getAllStorages();
+        if(storages){
+            for (let i = 0; i < storages.length; i++) {
+                const element = storages[i];
+                if(element.dataValues.apartment_id==req.params.id)
+                    response.push(element.dataValues)
+            }
+            res.send(response);
+        }
+        else
+        res.status(404).send({
+            message: `Cannot find storages with apartment_id=${id}.`
+        });
+    }
+    catch(err){
+        res.status(500).send({
+            message:
+                err.message || "Some error occurred while retrieving Storages."
+        });
+    }   
+}
+
 const getStorageById = async(req, res) =>{
     try{
         const storage = await storages_dal.getStorageById(req.params.id);
@@ -108,6 +133,7 @@ module.exports = {
     createStorage,
     deleteStorage,
     getAllStorages,
-    getStorageById
+    getStorageById,
+    getStoragesByApartment
 }
 

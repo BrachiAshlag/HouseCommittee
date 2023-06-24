@@ -35,83 +35,46 @@ const getActiveVotions = async (building_id, entry_id) => {
         return await Vote.findAll({
             where: {
                 [Op.and]: {
-                    end_date: { [Op.gt]: new Date() },
+                    end_date: { [Op.gte]: new Date() },
                     building_id: building_id
-                }  
-            }, 
-            order:[['end_date', 'ASC']]
+                }
+            },
+            order: [['end_date', 'ASC']]
         });
     if (entry_id != undefined)
         return await Vote.findAll({
             where: {
                 [Op.and]: {
-                    end_date: { [Op.gt]: new Date() },
+                    end_date: { [Op.gte]: new Date() },
                     entry_id: entry_id
-                }  
-            }, 
-            order:[['end_date', 'ASC']]
+                }
+            },
+            order: [['end_date', 'ASC']]
         });
 }
 
-const getRelevantVote = async (entry_id, building_id) => {
+const getLastVote = async (building_id, entry_id) => {
     if (building_id != undefined)
         return await Vote.findAll({
-            limit:1, 
-            where: { 
+            limit: 1,
+            where: {
                 [Op.and]: {
-                    end_date: { 
-                        [Op.gt]: new Date() 
-                    },
+                    end_date: { [Op.lt]: new Date() },
                     building_id: building_id
                 }
-                
-            }, 
-            order:[['end_date', 'ASC']]
+            },
+            order: [['end_date', 'DESC']]
         });
     if (entry_id != undefined)
         return await Vote.findAll({
-            limit:1, 
-            where: { 
+            limit: 1,
+            where: {
                 [Op.and]: {
-                    end_date: { 
-                        [Op.gt]: new Date() 
-                    },
+                    end_date: { [Op.lt]: new Date() },
                     entry_id: entry_id
                 }
-                
-            }, 
-            order:[['end_date', 'ASC']]
-        });
-}
-
-const getLastVote = async (entry_id, building_id) => {
-    if (building_id != undefined)
-        return await Vote.findAll({
-            limit:1, 
-            where: { 
-                [Op.and]: {
-                    end_date: { 
-                        [Op.lt]: new Date() 
-                    },
-                    building_id: building_id
-                }
-                
-            }, 
-            order:[['end_date', 'ASC']]
-        });
-    if (entry_id != undefined)
-        return await Vote.findAll({
-            limit:1, 
-            where: { 
-                [Op.and]: {
-                    end_date: { 
-                        [Op.lt]: new Date() 
-                    },
-                    entry_id: entry_id
-                }
-                
-            }, 
-            order:[['end_date', 'ASC']]
+            },
+            order: [['end_date', 'DESC']]
         });
 }
 
@@ -127,7 +90,7 @@ const getVotesByYear = (year, entry_id, building_id) => {
                     },
                     building_id: building_id
                 }
-                
+
             }
         });
 
@@ -140,49 +103,53 @@ const getVotesByYear = (year, entry_id, building_id) => {
                     },
                     entry_id: entry_id
                 }
-                
+
             }
         });
-    
+
 }
 
 const getVoteByVoteType = (entry_id, building_id, vote_type_id) => {
     if (building_id != undefined)
-        return Vote.findAll({ 
-            where:{ 
+        return Vote.findAll({
+            where: {
                 [Op.and]: {
-                    vote_type_id: vote_type_id ,
-                    building_id: building_id 
+                    vote_type_id: vote_type_id,
+                    building_id: building_id
                 }
-        }});
+            }
+        });
     if (entry_id != undefined)
-        return Vote.findAll({ 
-            where:{ 
+        return Vote.findAll({
+            where: {
                 [Op.and]: {
-                    vote_type_id: vote_type_id ,
-                    entry_id: entry_id 
+                    vote_type_id: vote_type_id,
+                    entry_id: entry_id
                 }
-        }});
+            }
+        });
 }
 
 const getVotionBetween = (entry_id, building_id, startDate, endDate) => {
     if (building_id != undefined)
         return Vote.findAll({
-            where: { 
+            where: {
                 [Op.and]: {
-                    end_date: { [Op.between]: [startDate, endDate] }, 
-                    building_id: building_id 
+                    end_date: { [Op.between]: [startDate, endDate] },
+                    building_id: building_id
                 }
-            }
+            },
+            order: [['end_date', 'DESC']]
         });
     if (entry_id != undefined)
         return Vote.findAll({
-            where: { 
+            where: {
                 [Op.and]: {
-                    end_date: { [Op.between]: [startDate, endDate] }, 
-                    entry_id: entry_id 
+                    end_date: { [Op.between]: [startDate, endDate] },
+                    entry_id: entry_id
                 }
-            }
+            },
+            order: [['end_date', 'DESC']]
         });
 }
 
@@ -195,7 +162,6 @@ module.exports = {
     getActiveVotions,
     getVotionBetween,
     getVotesByYear,
-    getRelevantVote,
     getVoteByVoteType,
     getLastVote
 }

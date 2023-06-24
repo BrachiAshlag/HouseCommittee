@@ -11,5 +11,8 @@ storagesRouter.route("/:id")
     .get(storages.getStorageById)
     .delete(storages.deleteStorage);
 
+storagesRouter.route("/byApartment/:id")
+    .get(storages.getStoragesByApartment);
+    
 module.exports = storagesRouter;
 

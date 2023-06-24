@@ -85,10 +85,24 @@ const getAllBuildings = (req, res) => {
         });
 }
 
+const getLastBuildings = (req, res) => {
+  Building_dal.getLastBuildings()
+      .then(data => {
+          res.send(data);
+      })
+      .catch(err => {
+          res.status(500).send({
+              message:
+                  err.message || "Some error occurred while retrieving tutorials."
+          });
+      });
+}
+
 module.exports = {
     createBuilding,
     deleteBuilding,
     updateBuilding,
     getBuilding,
-    getAllBuildings
+    getAllBuildings,
+    getLastBuildings
 }
